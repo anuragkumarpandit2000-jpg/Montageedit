@@ -1,0 +1,13 @@
+packages:
+  "framer-motion": "For cinematic page transitions and scroll-triggered animations"
+
+images:
+  - path: "artifacts/montage/public/images/hero-bg.png"
+    description: "Cinematic abstract background with deep space dark purples and electric blue neon glowing smoke, subtle film grain effect, minimalist but dramatic"
+    aspect_ratio: "16:9"
+  - path: "artifacts/montage/public/images/profile-silhouette.png"
+    description: "A cinematic, dramatic lighting portrait silhouette of a young creative video editor, purple and blue neon rim lights, aesthetic and mysterious"
+    aspect_ratio: "1:1"
+
+notes:
+  - "This is a static portfolio site, no backend APIs required. Smooth scrolling is implemented natively."
