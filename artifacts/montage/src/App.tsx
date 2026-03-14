@@ -6,7 +6,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
+import PortfolioPage from "@/pages/PortfolioPage";
 import { CinematicLoader } from "@/components/CinematicLoader";
+import { AuthProvider } from "@/context/AuthContext";
+import { AuthModal } from "@/components/AuthModal";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +17,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/portfolio/:category" component={PortfolioPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -31,7 +35,10 @@ function App() {
           )}
         </AnimatePresence>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <AuthProvider>
+            <Router />
+            <AuthModal />
+          </AuthProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

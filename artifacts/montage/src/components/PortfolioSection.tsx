@@ -7,26 +7,32 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
+import { useLocation } from "wouter";
+import { useAuth } from "@/context/AuthContext";
 
 const projects = [
   {
     title: "Montage Edits",
     category: "Gaming / Action",
+    slug: "montage-edits",
     image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
   },
   {
     title: "Cinematic Edits",
     category: "Storytelling / Vlogs",
+    slug: "cinematic-edits",
     image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&q=80",
   },
   {
     title: "Lyrical Edits",
     category: "Music / Concerts",
+    slug: "lyrical-edits",
     image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
   },
   {
     title: "Social Media Reels",
     category: "Short-form / Viral",
+    slug: "reel-edits",
     image: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80",
   },
 ];
@@ -39,6 +45,8 @@ function ProjectCard({
   index: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const { user, openModal } = useAuth();
+  const [, navigate] = useLocation();
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -70,8 +78,15 @@ function ProjectCard({
     glowOpacity.set(0);
   }
 
+  function handleClick() {
+    if (user) {
+      navigate(`/portfolio/${project.slug}`);
+    } else {
+      openModal(project.slug);
+    }
+  }
+
   return (
-    /* Entrance animation wrapper */
     <motion.div
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -82,7 +97,6 @@ function ProjectCard({
         ease: [0.21, 0.47, 0.32, 0.98],
       }}
     >
-      {/* Float + tilt wrapper */}
       <motion.div
         ref={ref}
         animate={{ y: [0, index % 2 === 0 ? -9 : -6, 0] }}
@@ -100,13 +114,14 @@ function ProjectCard({
         }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
         className="group relative rounded-2xl bg-card border border-card-border cursor-pointer transition-colors duration-500 hover:border-primary/60"
         whileHover={{
           boxShadow:
             "0 30px 70px -12px rgba(99,102,241,0.45), 0 0 0 1px rgba(99,102,241,0.2)",
         }}
       >
-        {/* Image Container — overflow hidden only here so 3D tilt shows corners */}
+        {/* Image Container */}
         <div className="relative aspect-video overflow-hidden rounded-t-2xl">
           <img
             src={project.image}
@@ -130,6 +145,15 @@ function ProjectCard({
               {project.category}
             </span>
           </div>
+
+          {/* Lock badge if not logged in */}
+          {!user && (
+            <div className="absolute top-4 right-4">
+              <span className="px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full bg-indigo-500/20 backdrop-blur-md border border-indigo-500/30 text-indigo-300">
+                🔒 Login to View
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Title Section */}
@@ -163,7 +187,7 @@ export function PortfolioSection() {
         <div className="mt-16 text-center p-6 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
           <p className="text-muted-foreground font-medium flex items-center justify-center gap-2">
             <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            Real project videos coming soon. Follow on Instagram for previews.
+            Login to access the full video gallery for each category.
           </p>
         </div>
       </div>
