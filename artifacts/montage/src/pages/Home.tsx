@@ -2,6 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { HeroSection } from "@/components/HeroSection";
 import { PortfolioSection } from "@/components/PortfolioSection";
 import { ReviewsSection } from "@/components/ReviewsSection";
+import { ClientReviewForm } from "@/components/ClientReviewForm";
 import { FreeEditSection } from "@/components/FreeEditSection";
 import { HireMeSection } from "@/components/HireMeSection";
 import { AboutSection } from "@/components/AboutSection";
@@ -20,6 +21,11 @@ export default function Home() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         
         <ReviewsSection />
+
+        {/* Decorative Divider */}
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
+        <ClientReviewForm />
         
         {/* Decorative Divider */}
         <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
