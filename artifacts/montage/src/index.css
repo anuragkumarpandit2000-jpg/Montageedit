@@ -97,6 +97,12 @@
   }
 }
 
+/* ── Cinematic animation keyframes ── */
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50%       { transform: translateY(-28px) scale(1.15); }
+}
+
 @layer utilities {
   .text-glow-primary {
     text-shadow: 0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.3);
