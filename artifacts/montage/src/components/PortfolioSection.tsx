@@ -19,8 +19,8 @@ const projects = [
   {
     title: "Lyrical Edits",
     category: "Music / Concerts",
-    /* concert lyrical vibe */
-    image: "https://images.unsplash.com/photo-1470229722913-7c090be5c560?w=800&q=80",
+    /* neon concert stage lyrical vibe */
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
     color: "primary"
   },
   {

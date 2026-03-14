@@ -31,7 +31,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 uppercase leading-tight text-glow-primary"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 uppercase leading-tight text-glow-primary"
         >
           <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">Professional</span>
           <span className="cinematic-gradient-text">Video Editing</span>
@@ -50,13 +50,23 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="flex flex-col items-center justify-center gap-4"
         >
-          <CinematicButton href="#portfolio" variant="primary">
-            View Portfolio
-          </CinematicButton>
-          <CinematicButton href="#free-edit" variant="outline">
-            Get a Free Edit
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <CinematicButton href="#portfolio" variant="primary">
+              View Portfolio
+            </CinematicButton>
+            <div className="relative">
+              <span className="absolute -top-2.5 -right-2.5 z-20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-accent text-accent-foreground shadow-lg border border-accent/30" style={{whiteSpace:'nowrap'}}>
+                Limited Time
+              </span>
+              <CinematicButton href="#free-edit" variant="outline">
+                Get a Free Edit
+              </CinematicButton>
+            </div>
+          </div>
+          <CinematicButton href="mailto:anuragkumar.pandit2000@gmail.com" variant="accent">
+            Paid Edit
           </CinematicButton>
         </motion.div>
       </div>
