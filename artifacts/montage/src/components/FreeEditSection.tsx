@@ -29,13 +29,13 @@ export function FreeEditSection() {
             
             <CinematicButton 
               variant="accent" 
-              href="https://instagram.com/montage.edits" 
+              href="https://instagram.com/parker_montage" 
               target="_blank" 
               rel="noopener noreferrer"
               className="w-full sm:w-auto"
             >
               <Instagram className="w-5 h-5 mr-2" />
-              DM @montage.edits
+              DM @parker_montage
             </CinematicButton>
           </div>
         </div>
