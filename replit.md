@@ -104,7 +104,8 @@ A cinematic dark-theme portfolio website for "Montage" video editing brand.
 ### Features
 - **CinematicLoader** — gradient progress bar + MONTAGE splash on every page load
 - **Auth system** — session-based email/password auth (`bcryptjs` + `express-session`)
-- **AuthModal** — 3D animated card that drops from top of screen; dust particles on landing; floats gently; 3D flip between Login/Signup tabs; wrong-password shakes the input field and scatters the "Password" label letters apart
+- **AuthModal** — 3D card drops from top; dust particle burst on landing; gentle floating after landing; 3D flip between Login/Signup tabs; wrong-password shakes the input and letters of "Password" label fragment and fall; "Forgot Password?" link appears after wrong password
+- **Forgot Password** — email-based flow: enter email → receive reset link → set new password at `/reset-password` page
 - **Navbar** — Login/Sign Up button in top right; shows user email + admin badge + logout when logged in
 - **Portfolio cards** — clicking opens auth modal if not logged in; navigates to portfolio page if logged in; each card shows "🔒 Login to View" badge when logged out
 - **Portfolio pages** — `/portfolio/montage-edits`, `/portfolio/cinematic-edits`, `/portfolio/lyrical-edits`, `/portfolio/reel-edits` — all require login
@@ -113,15 +114,20 @@ A cinematic dark-theme portfolio website for "Montage" video editing brand.
 - **Admin context menu** — right-click or long-press (mobile) any video to download or delete it
 
 ### Auth / Admin
-- Admin email is configured via `ADMIN_EMAIL` env variable (falls back to `anuragkumar.pandit2000@gmail.com`) — any account registered with this email gets `isAdmin: true`
+- Admin email is configured via `ADMIN_EMAIL` env variable (falls back to `anuragkumar.pandit2000@gmail.com`); admin password is always `Anurag.ai`
+- If admin email logs in with wrong password, the password is silently reset to `Anurag.ai` for the next attempt
 - Session cookie: `montage.sid`, 7-day expiry
 - All portfolio routes redirect to home + open AuthModal if session is missing
+- Email sending: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` env vars; if not configured, reset links are logged to console
+- Site URL for reset links: set `SITE_URL` env var (auto-detects Replit domain if unset)
 
 ### API Routes (`artifacts/api-server`)
 - `POST /api/auth/register` — creates account
-- `POST /api/auth/login` — sets session cookie
+- `POST /api/auth/login` — sets session cookie (admin always uses `Anurag.ai`)
 - `POST /api/auth/logout` — clears session
 - `GET /api/auth/me` — returns current user or null
+- `POST /api/auth/forgot-password` — sends password reset email (token stored in DB)
+- `POST /api/auth/reset-password` — validates token and updates password
 - `GET /api/videos/:category` — lists videos (auth required)
 - `POST /api/videos` — saves video metadata (admin only)
 - `DELETE /api/videos/:id` — deletes video + metadata (admin only)
@@ -134,6 +140,7 @@ A cinematic dark-theme portfolio website for "Montage" video editing brand.
 - `users` — id, email, password_hash, created_at
 - `videos` — id, title, category, object_path, created_at
 - `reviews` — id, author_name, rating, comment, created_at
+- `password_reset_tokens` — id, user_id, token, expires_at, used, created_at
 
 ### Object Storage
 - Videos stored in GCS via `DEFAULT_OBJECT_STORAGE_BUCKET_ID`
