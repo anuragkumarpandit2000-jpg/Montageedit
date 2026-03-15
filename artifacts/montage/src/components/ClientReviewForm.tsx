@@ -1,12 +1,15 @@
-import { useState } from "react";
-import { Star, Quote, Send, MessageSquarePlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Star, Quote, Send, MessageSquarePlus, LogIn } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
-interface Review {
+interface ApiReview {
+  id: number;
+  authorName: string;
   rating: number;
   comment: string;
-  id: number;
+  createdAt: string;
 }
 
 function StarRating({
@@ -15,12 +18,14 @@ function StarRating({
   onRate,
   onHover,
   onLeave,
+  readonly = false,
 }: {
   rating: number;
   hovered: number;
   onRate: (n: number) => void;
   onHover: (n: number) => void;
   onLeave: () => void;
+  readonly?: boolean;
 }) {
   return (
     <div className="flex gap-2" onMouseLeave={onLeave}>
@@ -30,10 +35,11 @@ function StarRating({
           <button
             key={star}
             type="button"
-            onClick={() => onRate(star)}
-            onMouseEnter={() => onHover(star)}
+            disabled={readonly}
+            onClick={() => !readonly && onRate(star)}
+            onMouseEnter={() => !readonly && onHover(star)}
             aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
-            className="transition-transform duration-150 hover:scale-125 focus:outline-none"
+            className={`transition-transform duration-150 focus:outline-none ${readonly ? "cursor-default" : "hover:scale-125"}`}
           >
             <Star
               className={`w-8 h-8 transition-all duration-200 ${
@@ -50,7 +56,7 @@ function StarRating({
   );
 }
 
-function ReviewCard({ review, index }: { review: Review; index: number }) {
+function ReviewCard({ review, index }: { review: ApiReview; index: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -60,7 +66,7 @@ function ReviewCard({ review, index }: { review: Review; index: number }) {
     >
       <Quote className="absolute top-5 right-5 w-7 h-7 text-white/5 group-hover:text-primary/20 transition-colors" />
 
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-1 mb-3">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
@@ -74,26 +80,63 @@ function ReviewCard({ review, index }: { review: Review; index: number }) {
         ))}
       </div>
 
-      <p className="text-base text-foreground/90 leading-relaxed italic">
+      <p className="text-base text-foreground/90 leading-relaxed italic mb-4">
         "{review.comment}"
       </p>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-white">{review.authorName}</p>
+        <p className="text-xs text-muted-foreground">
+          {new Date(review.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      </div>
     </motion.div>
   );
 }
 
 export function ClientReviewForm() {
+  const { user, openModal } = useAuth();
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
+  const [authorName, setAuthorName] = useState("");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [reviews, setReviews] = useState<ApiReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function fetchReviews() {
+    try {
+      const res = await fetch("/api/reviews", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data.reviews ?? []);
+      }
+    } catch {
+    } finally {
+      setLoadingReviews(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!user) {
+      openModal();
+      return;
+    }
 
     if (rating === 0) {
       setError("Please select a star rating.");
+      return;
+    }
+    if (!authorName.trim()) {
+      setError("Please enter your name.");
       return;
     }
     if (comment.trim().length < 5) {
@@ -101,16 +144,33 @@ export function ClientReviewForm() {
       return;
     }
 
-    setReviews((prev) => [
-      { rating, comment: comment.trim(), id: Date.now() },
-      ...prev,
-    ]);
-    setRating(0);
-    setHovered(0);
-    setComment("");
     setError("");
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setSubmitting(true);
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ authorName: authorName.trim(), rating, comment: comment.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to submit review.");
+        return;
+      }
+      setReviews((prev) => [data.review, ...prev]);
+      setRating(0);
+      setHovered(0);
+      setAuthorName("");
+      setComment("");
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -136,6 +196,39 @@ export function ClientReviewForm() {
             onSubmit={handleSubmit}
             className="relative bg-card rounded-[23px] p-8 md:p-10 border border-white/10 backdrop-blur-xl"
           >
+            {!user && (
+              <div className="flex items-center gap-3 mb-7 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 text-sm text-primary">
+                <LogIn className="w-4 h-4 shrink-0" />
+                <span>
+                  You need to{" "}
+                  <button
+                    type="button"
+                    onClick={() => openModal()}
+                    className="underline underline-offset-2 font-semibold hover:text-primary/80 transition-colors"
+                  >
+                    sign in
+                  </button>{" "}
+                  to submit a review.
+                </span>
+              </div>
+            )}
+
+            <div className="mb-7">
+              <label className="block text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={authorName}
+                onChange={(e) => {
+                  setAuthorName(e.target.value);
+                  if (error) setError("");
+                }}
+                placeholder="How should we display your name?"
+                className="w-full rounded-xl bg-background/60 border border-white/10 focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/40 px-4 py-3 text-foreground placeholder:text-muted-foreground/50 transition-all"
+              />
+            </div>
+
             <div className="mb-7">
               <label className="block text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                 Your Rating
@@ -195,31 +288,32 @@ export function ClientReviewForm() {
 
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-8 py-3.5 font-semibold tracking-wider rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 box-glow-primary transition-all duration-300 hover:scale-105 active:scale-95"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-8 py-3.5 font-semibold tracking-wider rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 box-glow-primary transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <Send className="w-4 h-4" />
-              Submit Review
+              {submitting ? "Submitting..." : "Submit Review"}
             </button>
           </form>
         </div>
 
         {/* Submitted reviews list */}
-        <AnimatePresence>
-          {reviews.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-4"
-            >
-              <h3 className="text-lg font-semibold uppercase tracking-widest text-muted-foreground mb-6 text-center">
-                Recent Reviews
-              </h3>
-              {reviews.map((review, index) => (
-                <ReviewCard key={review.id} review={review} index={index} />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {loadingReviews ? (
+          <div className="text-center text-muted-foreground text-sm py-8">Loading reviews...</div>
+        ) : reviews.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-4"
+          >
+            <h3 className="text-lg font-semibold uppercase tracking-widest text-muted-foreground mb-6 text-center">
+              Community Reviews
+            </h3>
+            {reviews.map((review, index) => (
+              <ReviewCard key={review.id} review={review} index={index} />
+            ))}
+          </motion.div>
+        ) : null}
       </div>
     </AnimatedSection>
   );

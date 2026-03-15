@@ -113,7 +113,7 @@ A cinematic dark-theme portfolio website for "Montage" video editing brand.
 - **Admin context menu** — right-click or long-press (mobile) any video to download or delete it
 
 ### Auth / Admin
-- Admin email is hardcoded: `anuragkumar.pandit2000@gmail.com` — any account registered with this email gets `isAdmin: true`
+- Admin email is configured via `ADMIN_EMAIL` env variable (falls back to `anuragkumar.pandit2000@gmail.com`) — any account registered with this email gets `isAdmin: true`
 - Session cookie: `montage.sid`, 7-day expiry
 - All portfolio routes redirect to home + open AuthModal if session is missing
 
@@ -127,10 +127,13 @@ A cinematic dark-theme portfolio website for "Montage" video editing brand.
 - `DELETE /api/videos/:id` — deletes video + metadata (admin only)
 - `GET /api/videos/:id/stream` — streams video file with range support (auth required)
 - `POST /api/storage/uploads/request-url` — returns GCS presigned upload URL (admin only)
+- `GET /api/reviews` — lists all community reviews (public)
+- `POST /api/reviews` — submit a review with name, rating, comment (auth required)
 
 ### DB Schema
 - `users` — id, email, password_hash, created_at
 - `videos` — id, title, category, object_path, created_at
+- `reviews` — id, author_name, rating, comment, created_at
 
 ### Object Storage
 - Videos stored in GCS via `DEFAULT_OBJECT_STORAGE_BUCKET_ID`

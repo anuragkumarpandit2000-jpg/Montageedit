@@ -4,7 +4,7 @@ import { db } from "@workspace/db";
 import { users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
-const ADMIN_EMAIL = "anuragkumar.pandit2000@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "anuragkumar.pandit2000@gmail.com";
 
 const router = Router();
 

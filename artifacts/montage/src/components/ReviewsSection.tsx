@@ -1,7 +1,7 @@
 import { Star, Quote } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 
-const reviews = [
+const featuredReviews = [
   {
     name: "Alex V.",
     role: "Content Creator",
@@ -22,7 +22,6 @@ const reviews = [
 export function ReviewsSection() {
   return (
     <AnimatedSection id="reviews" className="py-24 relative">
-      {/* Decorative background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-64 bg-accent/10 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -32,23 +31,23 @@ export function ReviewsSection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {reviews.map((review, idx) => (
-            <div 
+          {featuredReviews.map((review, idx) => (
+            <div
               key={idx}
               className="bg-card/50 backdrop-blur-sm border border-card-border p-8 rounded-2xl relative group hover:border-accent/50 transition-colors"
             >
               <Quote className="absolute top-6 right-6 w-8 h-8 text-white/5 group-hover:text-accent/20 transition-colors" />
-              
+
               <div className="flex gap-1 mb-6">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star key={star} className="w-5 h-5 text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.6)]" fill="currentColor" />
                 ))}
               </div>
-              
+
               <p className="text-lg text-foreground/90 mb-8 leading-relaxed italic">
                 "{review.text}"
               </p>
-              
+
               <div>
                 <h4 className="font-bold text-white font-display">{review.name}</h4>
                 <p className="text-sm text-accent">{review.role}</p>
@@ -56,10 +55,6 @@ export function ReviewsSection() {
             </div>
           ))}
         </div>
-
-        <p className="text-center mt-12 text-muted-foreground text-sm tracking-widest uppercase">
-          More real reviews coming soon
-        </p>
       </div>
     </AnimatedSection>
   );
