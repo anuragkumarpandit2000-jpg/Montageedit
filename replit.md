@@ -94,3 +94,45 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+---
+
+## Montage Portfolio Site (`artifacts/montage`)
+
+A cinematic dark-theme portfolio website for "Montage" video editing brand.
+
+### Features
+- **CinematicLoader** — gradient progress bar + MONTAGE splash on every page load
+- **Auth system** — session-based email/password auth (`bcryptjs` + `express-session`)
+- **AuthModal** — 3D animated card that drops from top of screen; dust particles on landing; floats gently; 3D flip between Login/Signup tabs; wrong-password shakes the input field and scatters the "Password" label letters apart
+- **Navbar** — Login/Sign Up button in top right; shows user email + admin badge + logout when logged in
+- **Portfolio cards** — clicking opens auth modal if not logged in; navigates to portfolio page if logged in; each card shows "🔒 Login to View" badge when logged out
+- **Portfolio pages** — `/portfolio/montage-edits`, `/portfolio/cinematic-edits`, `/portfolio/lyrical-edits`, `/portfolio/reel-edits` — all require login
+- **Video gallery** — grid layout per category; click any video to open popup player with blur background and play/pause controls
+- **Admin upload** — floating "+" button (bottom right) only visible to admin; opens upload dialog with title input + file picker + animated progress bar; uploads directly to GCS via presigned URL
+- **Admin context menu** — right-click or long-press (mobile) any video to download or delete it
+
+### Auth / Admin
+- Admin email is hardcoded: `anuragkumar.pandit2000@gmail.com` — any account registered with this email gets `isAdmin: true`
+- Session cookie: `montage.sid`, 7-day expiry
+- All portfolio routes redirect to home + open AuthModal if session is missing
+
+### API Routes (`artifacts/api-server`)
+- `POST /api/auth/register` — creates account
+- `POST /api/auth/login` — sets session cookie
+- `POST /api/auth/logout` — clears session
+- `GET /api/auth/me` — returns current user or null
+- `GET /api/videos/:category` — lists videos (auth required)
+- `POST /api/videos` — saves video metadata (admin only)
+- `DELETE /api/videos/:id` — deletes video + metadata (admin only)
+- `GET /api/videos/:id/stream` — streams video file with range support (auth required)
+- `POST /api/storage/uploads/request-url` — returns GCS presigned upload URL (admin only)
+
+### DB Schema
+- `users` — id, email, password_hash, created_at
+- `videos` — id, title, category, object_path, created_at
+
+### Object Storage
+- Videos stored in GCS via `DEFAULT_OBJECT_STORAGE_BUCKET_ID`
+- Uploaded directly from browser to GCS via presigned URL
+- Served via authenticated streaming endpoint with Range request support
