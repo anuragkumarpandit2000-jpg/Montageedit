@@ -44,7 +44,18 @@ router.post("/auth/login", async (req, res) => {
     return res.status(400).json({ error: "Email and password are required" });
   }
   try {
-    const [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+    let [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+
+    /* ── Admin auto-create if account doesn't exist ── */
+    if (!user && email.toLowerCase() === ADMIN_EMAIL) {
+      if (password === ADMIN_PASSWORD) {
+        const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
+        [user] = await db.insert(users).values({ email: ADMIN_EMAIL, passwordHash }).returning();
+      } else {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+    }
+
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
@@ -54,7 +65,6 @@ router.post("/auth/login", async (req, res) => {
     /* ── Admin special handling ── */
     if (user.email === ADMIN_EMAIL) {
       if (password === ADMIN_PASSWORD) {
-        // If entered password matches the admin password, ensure hash is correct
         if (!valid) {
           const newHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
           await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
