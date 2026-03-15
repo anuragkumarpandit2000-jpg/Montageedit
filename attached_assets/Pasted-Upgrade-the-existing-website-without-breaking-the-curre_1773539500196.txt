@@ -1,0 +1,185 @@
+Upgrade the existing website without breaking the current UI, theme, animations, colors, or layout.
+
+The site already has:
+• Login / Signup system
+• Portfolio categories (Montage, Cinematic, Lyrical, Reel)
+• Plus icon for upload
+• Animated login card
+
+Implement the following improvements and fixes.
+
+--------------------------------------------------
+
+1. Fix Admin Login
+
+The email:
+anuragkumar.pandit2000@gmail.com
+
+must always work as the ADMIN account.
+
+If the account exists but login fails, reset the password automatically.
+
+Set the password to:
+Anurag.ai
+
+When this email logs in successfully, enable ADMIN MODE.
+
+Admin privileges:
+• Upload videos
+• Delete videos
+• Download videos
+
+Normal users:
+• Can only watch videos.
+
+--------------------------------------------------
+
+2. Login Card Animation
+
+Improve the login/signup UI animation.
+
+When login opens:
+
+• A 3D card should fall from the top
+• When it lands, create a small dust particle effect
+• After landing the card should slightly float
+
+--------------------------------------------------
+
+3. Wrong Password Animation
+
+If a wrong password is entered:
+
+• The password input field should shake strongly
+• The label text "Password" should break into fragments
+• The fragments fall down inside the card
+• After 1 second the card resets to normal
+
+--------------------------------------------------
+
+4. Forgot Password System
+
+When a user enters a wrong password:
+
+Show a "Forgot Password?" option below the password field.
+
+If the user clicks "Forgot Password":
+
+Step 1
+Ask the user to enter their email.
+
+Step 2
+Send a password recovery email to that address.
+
+Step 3
+The email should contain a secure reset link.
+
+Step 4
+When the user clicks the reset link:
+
+Open a password reset page.
+
+The page must show:
+
+• New Password
+• Confirm Password
+
+Step 5
+If both passwords match, update the password.
+
+Step 6
+After password change:
+
+Redirect the user back to the main login page.
+
+Step 7
+User can now login with the new password successfully.
+
+--------------------------------------------------
+
+5. Category Access Protection
+
+When a user clicks:
+
+• Montage Edit
+• Cinematic Edit
+• Lyrical Edit
+• Reel Edit
+
+If the user is not logged in:
+
+Show the animated login card first.
+
+After login:
+Open the selected category page.
+
+--------------------------------------------------
+
+6. Upload System (Admin Only)
+
+Each category page has a plus (+) icon.
+
+Only ADMIN can click this icon.
+
+When ADMIN clicks it:
+
+Step 1
+Show a short cinematic loading animation.
+
+Step 2
+Open the device file picker to select a video from the phone gallery.
+
+Step 3
+After selecting the video show a professional 3D upload animation.
+
+Example visuals:
+• glowing progress ring
+• floating particles
+• video card forming in 3D
+
+Step 4
+When upload finishes, add the video to the gallery grid.
+
+--------------------------------------------------
+
+7. Video Gallery
+
+Videos should appear in a responsive grid layout.
+
+When a user clicks a video:
+
+• Open popup video player
+• Blur background
+• Show play/pause controls
+• Close button available
+
+--------------------------------------------------
+
+8. Admin Video Controls
+
+When ADMIN long presses or right clicks a video card:
+
+Show options:
+
+• Download
+• Delete
+
+Delete removes the video from the gallery.
+
+Normal users cannot see these options.
+
+--------------------------------------------------
+
+9. Maintain Existing Design
+
+Keep all existing:
+
+• colors
+• fonts
+• loading animation
+• cinematic theme
+• page layout
+
+Do not redesign the site.
+
+Only extend it with authentication fixes, password recovery, admin upload system, and gallery controls.
