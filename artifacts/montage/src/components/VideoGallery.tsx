@@ -14,35 +14,52 @@ interface Video {
 }
 interface VideoGalleryProps { category: string; refreshKey?: number; }
 
-/* ── AI thumbnail generator via Pollinations ── */
-function buildThumbnailPrompt(title: string, category: string): string {
-  const t = title.toLowerCase();
-  let base = title;
+/* ── Capture a frame from the video file as a JPEG blob ── */
+function captureVideoThumbnail(file: File): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext("2d");
+    let resolved = false;
 
-  if (t.includes("ronaldo") || t.includes("messi") || t.includes("football") || t.includes("soccer")) {
-    base = `${title} professional football player cinematic dark stadium dramatic lighting`;
-  } else if (t.includes("cinematic") || t.includes("film")) {
-    base = `${title} cinematic moody dark film aesthetic professional photography`;
-  } else if (t.includes("lyrical") || t.includes("music") || t.includes("song")) {
-    base = `${title} music artist performance stage neon lights dark aesthetic`;
-  } else if (t.includes("reel") || t.includes("social") || t.includes("viral")) {
-    base = `${title} social media content creator dynamic urban neon dark`;
-  } else if (category === "montage-edits") {
-    base = `${title} epic montage dark cinematic dramatic action`;
-  } else if (category === "cinematic-edits") {
-    base = `${title} cinematic dark moody professional film color grade`;
-  } else if (category === "lyrical-edits") {
-    base = `${title} lyrical music video aesthetic dark ambient glow`;
-  } else {
-    base = `${title} professional dark cinematic wallpaper 4k dramatic lighting`;
-  }
-  return `${base}, high quality, dark background, vibrant colors, professional, no text, no watermark`;
-}
+    const done = (blob: Blob | null) => {
+      if (resolved) return;
+      resolved = true;
+      URL.revokeObjectURL(video.src);
+      video.remove();
+      resolve(blob);
+    };
 
-function getThumbnailUrl(title: string, category: string): string {
-  const prompt = buildThumbnailPrompt(title, category);
-  const seed = title.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=640&height=360&nologo=true&seed=${seed}`;
+    const timeout = setTimeout(() => done(null), 10_000);
+
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = "metadata";
+
+    video.onloadedmetadata = () => {
+      video.currentTime = Math.min(1.5, video.duration * 0.05);
+    };
+
+    video.onseeked = () => {
+      clearTimeout(timeout);
+      try {
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, 640, 360);
+          canvas.toBlob((blob) => done(blob), "image/jpeg", 0.88);
+        } else {
+          done(null);
+        }
+      } catch {
+        done(null);
+      }
+    };
+
+    video.onerror = () => { clearTimeout(timeout); done(null); };
+    video.src = URL.createObjectURL(file);
+    video.load();
+  });
 }
 
 /* ═══════════════════════════════════════════
@@ -228,7 +245,7 @@ function UploadAnimation({ progress, fileName }: { progress: number; fileName: s
 ═══════════════════════════════════════════ */
 type UploadStatus = "idle" | "cinematic" | "selected" | "uploading" | "done";
 
-function ImportCard({ category, onUploaded }: { category: string; onUploaded: (thumbnailUrl?: string) => void }) {
+function ImportCard({ category, onUploaded }: { category: string; onUploaded: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile]       = useState<File | null>(null);
   const [title, setTitle]     = useState("");
@@ -263,6 +280,10 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: (t
     if (!file || !title.trim()) return;
     setStatus("uploading"); setError(""); setProgress(0);
     try {
+      /* ── Step 1: capture a thumbnail frame from the video (background) ── */
+      const thumbCapturePromise = captureVideoThumbnail(file);
+
+      /* ── Step 2: get presigned URL for video ── */
       const urlRes = await fetch("/api/storage/uploads/request-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -272,6 +293,7 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: (t
       if (!urlRes.ok) throw new Error("Could not get upload URL");
       const { uploadURL, objectPath } = await urlRes.json();
 
+      /* ── Step 3: upload video to GCS with progress ── */
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadURL);
@@ -284,8 +306,37 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: (t
         xhr.send(file);
       });
 
-      const thumbnailUrl = getThumbnailUrl(title.trim(), category);
+      /* ── Step 4: upload thumbnail JPEG if capture succeeded ── */
+      let thumbnailUrl: string | undefined;
+      try {
+        const thumbBlob = await thumbCapturePromise;
+        if (thumbBlob) {
+          const thumbReq = await fetch("/api/storage/uploads/request-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: `thumb_${Date.now()}.jpg`,
+              size: thumbBlob.size,
+              contentType: "image/jpeg",
+            }),
+          });
+          if (thumbReq.ok) {
+            const { uploadURL: thumbUploadURL, objectPath: thumbPath } = await thumbReq.json();
+            const thumbXhr = new XMLHttpRequest();
+            await new Promise<void>((res, rej) => {
+              thumbXhr.open("PUT", thumbUploadURL);
+              thumbXhr.setRequestHeader("Content-Type", "image/jpeg");
+              thumbXhr.onload = () => (thumbXhr.status < 400 ? res() : rej());
+              thumbXhr.onerror = () => rej();
+              thumbXhr.send(thumbBlob);
+            });
+            thumbnailUrl = thumbPath; /* e.g. /objects/uploads/thumb-uuid */
+          }
+        }
+      } catch { /* thumbnail is optional — proceed without it */ }
 
+      /* ── Step 5: save video metadata to DB ── */
       const saveRes = await fetch("/api/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -295,7 +346,7 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: (t
       if (!saveRes.ok) throw new Error("Failed to save video");
 
       setStatus("done");
-      setTimeout(() => { reset(); onUploaded(thumbnailUrl); }, 1000);
+      setTimeout(() => { reset(); onUploaded(); }, 1000);
     } catch (err: any) {
       setError(err?.message ?? "Upload failed");
       setStatus("selected");
@@ -568,22 +619,21 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
             onTouchMove={onLongPressEnd}
             whileHover={{ scale: 1.02, boxShadow: "0 16px 48px -8px rgba(99,102,241,0.45)" }}
           >
-            {/* AI Thumbnail image */}
-            {(() => {
-              const thumb = video.thumbnailUrl || getThumbnailUrl(video.title, video.category);
-              return (
-                <img
-                  src={thumb}
-                  alt={video.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                />
-              );
-            })()}
+            {/* Thumbnail — real frame captured from the video */}
+            {video.thumbnailUrl ? (
+              <img
+                src={`/api/storage${video.thumbnailUrl}`}
+                alt={video.title}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/35 via-black/60 to-violet-900/25" />
+            )}
 
-            {/* Dark overlay so text/controls are readable */}
-            <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-black/50 pointer-events-none" />
+            {/* Dark overlay so text/controls are always readable */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/20 pointer-events-none" />
 
             {/* Play overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-250">
