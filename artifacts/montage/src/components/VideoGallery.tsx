@@ -10,9 +10,40 @@ import { useAuth } from "@/context/AuthContext";
 /* ── types ── */
 interface Video {
   id: number; title: string; category: string;
-  objectPath: string; createdAt: string;
+  objectPath: string; thumbnailUrl?: string | null; createdAt: string;
 }
 interface VideoGalleryProps { category: string; refreshKey?: number; }
+
+/* ── AI thumbnail generator via Pollinations ── */
+function buildThumbnailPrompt(title: string, category: string): string {
+  const t = title.toLowerCase();
+  let base = title;
+
+  if (t.includes("ronaldo") || t.includes("messi") || t.includes("football") || t.includes("soccer")) {
+    base = `${title} professional football player cinematic dark stadium dramatic lighting`;
+  } else if (t.includes("cinematic") || t.includes("film")) {
+    base = `${title} cinematic moody dark film aesthetic professional photography`;
+  } else if (t.includes("lyrical") || t.includes("music") || t.includes("song")) {
+    base = `${title} music artist performance stage neon lights dark aesthetic`;
+  } else if (t.includes("reel") || t.includes("social") || t.includes("viral")) {
+    base = `${title} social media content creator dynamic urban neon dark`;
+  } else if (category === "montage-edits") {
+    base = `${title} epic montage dark cinematic dramatic action`;
+  } else if (category === "cinematic-edits") {
+    base = `${title} cinematic dark moody professional film color grade`;
+  } else if (category === "lyrical-edits") {
+    base = `${title} lyrical music video aesthetic dark ambient glow`;
+  } else {
+    base = `${title} professional dark cinematic wallpaper 4k dramatic lighting`;
+  }
+  return `${base}, high quality, dark background, vibrant colors, professional, no text, no watermark`;
+}
+
+function getThumbnailUrl(title: string, category: string): string {
+  const prompt = buildThumbnailPrompt(title, category);
+  const seed = title.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=640&height=360&nologo=true&seed=${seed}`;
+}
 
 /* ═══════════════════════════════════════════
    CINEMATIC PRE-LOADER  (plays while picker
@@ -197,7 +228,7 @@ function UploadAnimation({ progress, fileName }: { progress: number; fileName: s
 ═══════════════════════════════════════════ */
 type UploadStatus = "idle" | "cinematic" | "selected" | "uploading" | "done";
 
-function ImportCard({ category, onUploaded }: { category: string; onUploaded: () => void }) {
+function ImportCard({ category, onUploaded }: { category: string; onUploaded: (thumbnailUrl?: string) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile]       = useState<File | null>(null);
   const [title, setTitle]     = useState("");
@@ -253,16 +284,18 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
         xhr.send(file);
       });
 
+      const thumbnailUrl = getThumbnailUrl(title.trim(), category);
+
       const saveRes = await fetch("/api/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ title: title.trim(), category, objectPath }),
+        body: JSON.stringify({ title: title.trim(), category, objectPath, thumbnailUrl }),
       });
       if (!saveRes.ok) throw new Error("Failed to save video");
 
       setStatus("done");
-      setTimeout(() => { reset(); onUploaded(); }, 1000);
+      setTimeout(() => { reset(); onUploaded(thumbnailUrl); }, 1000);
     } catch (err: any) {
       setError(err?.message ?? "Upload failed");
       setStatus("selected");
@@ -535,8 +568,22 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
             onTouchMove={onLongPressEnd}
             whileHover={{ scale: 1.02, boxShadow: "0 16px 48px -8px rgba(99,102,241,0.45)" }}
           >
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/25 via-black/55 to-violet-900/18 pointer-events-none" />
+            {/* AI Thumbnail image */}
+            {(() => {
+              const thumb = video.thumbnailUrl || getThumbnailUrl(video.title, video.category);
+              return (
+                <img
+                  src={thumb}
+                  alt={video.title}
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
+              );
+            })()}
+
+            {/* Dark overlay so text/controls are readable */}
+            <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-black/50 pointer-events-none" />
 
             {/* Play overlay */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-250">

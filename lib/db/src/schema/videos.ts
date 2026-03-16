@@ -7,6 +7,7 @@ export const videos = pgTable("videos", {
   title: text("title").notNull(),
   category: text("category").notNull(),
   objectPath: text("object_path").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

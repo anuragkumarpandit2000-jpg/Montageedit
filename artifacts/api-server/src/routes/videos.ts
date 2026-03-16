@@ -29,20 +29,37 @@ router.get("/videos/:category", requireAuth, async (req, res) => {
 });
 
 router.post("/videos", requireAdmin, async (req, res) => {
-  const { title, category, objectPath } = req.body as {
+  const { title, category, objectPath, thumbnailUrl } = req.body as {
     title?: string;
     category?: string;
     objectPath?: string;
+    thumbnailUrl?: string;
   };
   if (!title || !category || !objectPath) {
     return res.status(400).json({ error: "title, category, and objectPath are required" });
   }
   try {
-    const [video] = await db.insert(videos).values({ title, category, objectPath }).returning();
+    const [video] = await db
+      .insert(videos)
+      .values({ title, category, objectPath, thumbnailUrl: thumbnailUrl ?? null })
+      .returning();
     return res.json({ video });
   } catch (err) {
     console.error("Create video error:", err);
     return res.status(500).json({ error: "Failed to create video" });
+  }
+});
+
+router.patch("/videos/:id/thumbnail", requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { thumbnailUrl } = req.body as { thumbnailUrl?: string };
+  if (isNaN(id) || !thumbnailUrl) return res.status(400).json({ error: "Invalid request" });
+  try {
+    const [video] = await db.update(videos).set({ thumbnailUrl }).where(eq(videos.id, id)).returning();
+    return res.json({ video });
+  } catch (err) {
+    console.error("Patch thumbnail error:", err);
+    return res.status(500).json({ error: "Failed to update thumbnail" });
   }
 });
 

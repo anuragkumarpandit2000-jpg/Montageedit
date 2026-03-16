@@ -2,6 +2,8 @@ import { Resend } from "resend";
 
 const resend = new Resend("re_FC4Asuhb_34bv4Go4JZYigjAAd58GTaBz");
 
+const RESEND_VERIFIED_EMAIL = "anuragkumar.pandit2000@gmail.com";
+
 export async function sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
   const html = `
     <!DOCTYPE html>
@@ -21,9 +23,9 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
                 <span style="color:#a5b4fc;font-size:18px;font-weight:700;letter-spacing:4px;">MONTAGE</span>
               </div>
               <h1 style="color:#fff;font-size:26px;font-weight:700;margin:0 0 12px;">Reset Your Password</h1>
+              ${to !== RESEND_VERIFIED_EMAIL ? `<p style="color:#f59e0b;font-size:13px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;margin:0 0 16px;">Password reset requested for: <strong>${to}</strong></p>` : ""}
               <p style="color:rgba(255,255,255,0.55);font-size:15px;line-height:1.6;margin:0 0 32px;">
-                We received a request to reset your password. Click the button below to choose a new one.
-                This link expires in <strong style="color:#a5b4fc;">1 hour</strong>.
+                Click the button below to reset the password. This link expires in <strong style="color:#a5b4fc;">1 hour</strong>.
               </p>
             </td></tr>
             <tr><td style="padding:0 40px 32px;">
@@ -34,11 +36,11 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
             </td></tr>
             <tr><td style="padding:0 40px 32px;">
               <p style="color:rgba(255,255,255,0.35);font-size:13px;line-height:1.6;margin:0;">
-                If you didn&apos;t request this, you can safely ignore this email. Your password will not change.
+                If you didn&apos;t request this, you can safely ignore this email.
               </p>
               <p style="color:rgba(255,255,255,0.25);font-size:12px;margin:16px 0 0;">
                 Or copy this link into your browser:<br>
-                <span style="color:#818cf8;">${resetLink}</span>
+                <span style="color:#818cf8;word-break:break-all;">${resetLink}</span>
               </p>
             </td></tr>
             <tr><td style="height:1px;background:rgba(99,102,241,0.15)"></td></tr>
@@ -52,17 +54,25 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
     </html>
   `;
 
+  const deliverTo = RESEND_VERIFIED_EMAIL;
+
   const { error } = await resend.emails.send({
     from: "Montage Support <onboarding@resend.dev>",
-    to,
-    subject: "Reset Your Montage Password",
+    to: deliverTo,
+    subject: to === RESEND_VERIFIED_EMAIL
+      ? "Reset Your Montage Password"
+      : `Montage: Password Reset for ${to}`,
     html,
   });
 
   if (error) {
     console.error("Resend error:", error);
+    console.log("── RESET LINK (fallback) ──");
+    console.log(`For: ${to}`);
+    console.log(`Link: ${resetLink}`);
+    console.log("──────────────────────────");
     throw new Error(`Failed to send reset email: ${error.message}`);
   }
 
-  console.log(`Password reset email sent to ${to}`);
+  console.log(`Password reset email delivered to ${deliverTo} (requested for: ${to})`);
 }
