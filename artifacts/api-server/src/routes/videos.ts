@@ -69,6 +69,25 @@ router.delete("/videos/:id", requireAdmin, async (req, res) => {
   try {
     const [video] = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
     if (!video) return res.status(404).json({ error: "Video not found" });
+
+    // Delete the video file from object storage first
+    try {
+      const file = await storageService.getObjectEntityFile(video.objectPath);
+      await file.delete();
+    } catch (storageErr) {
+      console.warn("Could not delete video file from storage:", storageErr);
+    }
+
+    // Delete thumbnail from storage if present
+    if (video.thumbnailUrl) {
+      try {
+        const thumbFile = await storageService.getObjectEntityFile(video.thumbnailUrl);
+        await thumbFile.delete();
+      } catch {
+        // Thumbnail delete is best-effort
+      }
+    }
+
     await db.delete(videos).where(eq(videos.id, id));
     return res.json({ success: true });
   } catch (err) {
@@ -89,6 +108,11 @@ router.get("/videos/:id/stream", requireAuth, async (req, res) => {
     const [metadata] = await file.getMetadata();
     const fileSize = Number(metadata.size ?? 0);
     const contentType = (metadata.contentType as string) || "video/mp4";
+    const isDownload = req.query.download === "1";
+    const safeTitle = video.title.replace(/[^\w\s-]/g, "").trim() || "video";
+    const disposition = isDownload
+      ? `attachment; filename="${safeTitle}.mp4"`
+      : "inline";
     const rangeHeader = req.headers.range;
     if (rangeHeader) {
       const parts = rangeHeader.replace(/bytes=/, "").split("-");
@@ -100,6 +124,7 @@ router.get("/videos/:id/stream", requireAuth, async (req, res) => {
         "Accept-Ranges": "bytes",
         "Content-Length": chunkSize,
         "Content-Type": contentType,
+        "Content-Disposition": disposition,
       });
       file.createReadStream({ start, end }).pipe(res);
     } else {
@@ -107,6 +132,7 @@ router.get("/videos/:id/stream", requireAuth, async (req, res) => {
         "Content-Length": fileSize,
         "Content-Type": contentType,
         "Accept-Ranges": "bytes",
+        "Content-Disposition": disposition,
       });
       file.createReadStream().pipe(res);
     }

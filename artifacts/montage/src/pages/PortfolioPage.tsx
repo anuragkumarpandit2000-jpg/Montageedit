@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { ArrowLeft, Film } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { VideoGallery } from "@/components/VideoGallery";
-import { AdminUpload } from "@/components/AdminUpload";
 import { useAuth } from "@/context/AuthContext";
 
 const CATEGORIES: Record<string, { label: string; description: string }> = {
@@ -30,7 +29,6 @@ export default function PortfolioPage() {
   const [, params] = useRoute("/portfolio/:category");
   const [, navigate] = useLocation();
   const { user, loading, openModal } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
   const category = params?.category ?? "";
   const meta = CATEGORIES[category];
 
@@ -86,23 +84,15 @@ export default function PortfolioPage() {
           <div className="w-24 h-px bg-gradient-to-r from-primary/60 to-transparent mt-5" />
         </motion.div>
 
-        {/* Gallery */}
+        {/* Gallery (admin upload card is built into the gallery) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <VideoGallery category={category} refreshKey={refreshKey} />
+          <VideoGallery category={category} />
         </motion.div>
       </main>
-
-      {/* Admin Upload */}
-      {user.isAdmin && (
-        <AdminUpload
-          category={category}
-          onUploaded={() => setRefreshKey((k) => k + 1)}
-        />
-      )}
     </div>
   );
 }

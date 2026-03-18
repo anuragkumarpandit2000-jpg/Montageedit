@@ -686,7 +686,7 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <a
-              href={`/api/videos/${contextMenu.videoId}/stream`}
+              href={`/api/videos/${contextMenu.videoId}/stream?download=1`}
               download
               className="flex items-center gap-3 px-4 py-3.5 text-sm text-white/85 hover:text-white hover:bg-indigo-500/15 transition-all cursor-pointer"
               onClick={() => setContextMenu(null)}

@@ -11,6 +11,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { CinematicLoader } from "@/components/CinematicLoader";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { SplineLandingPage } from "@/components/SplineLandingPage";
 
 const queryClient = new QueryClient();
 
@@ -27,15 +28,27 @@ function Router() {
 
 function App() {
   const [loaded, setLoaded] = useState(false);
+  const [showSpline, setShowSpline] = useState(true);
+  const [splineGone, setSplineGone] = useState(false);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        {/* Step 1: Cinematic loader */}
         <AnimatePresence>
           {!loaded && (
             <CinematicLoader key="loader" onComplete={() => setLoaded(true)} />
           )}
         </AnimatePresence>
+
+        {/* Step 2: 3D Spline landing page (fixed overlay) */}
+        {loaded && !splineGone && (
+          <SplineLandingPage
+            onGone={() => setSplineGone(true)}
+          />
+        )}
+
+        {/* Step 3: Main app (always rendered, revealed when Spline exits) */}
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
             <Router />
