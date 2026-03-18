@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Montage - Video Editing Portfolio"
+title = "Montage"
 version = "1.0.0"
 id = "artifacts/montage"
 router = "path"
