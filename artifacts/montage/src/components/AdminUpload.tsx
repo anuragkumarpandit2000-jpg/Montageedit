@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, X, Upload, Loader2 } from "lucide-react";
+import { playClick, playUploadTick, playUploadComplete, playError } from "@/lib/sounds";
 
 interface AdminUploadProps {
   category: string;
@@ -15,15 +16,47 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const isPickingFileRef = useRef(false);
+  const lastTickProgress = useRef(-1);
+
+  // Play tick sounds as progress increases
+  useEffect(() => {
+    if (!uploading) return;
+    const step = 5;
+    if (progress >= lastTickProgress.current + step || (progress === 100 && lastTickProgress.current < 100)) {
+      playUploadTick(progress);
+      lastTickProgress.current = progress;
+    }
+  }, [progress, uploading]);
+
+  function openFilePicker() {
+    isPickingFileRef.current = true;
+    fileRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // Small delay so any stray backdrop-click events fire first, then we reset the guard
+    setTimeout(() => { isPickingFileRef.current = false; }, 150);
+    setFile(e.target.files?.[0] ?? null);
+    playClick();
+  }
+
+  function handleBackdropClick() {
+    if (uploading || isPickingFileRef.current) return;
+    setOpen(false);
+    playClick(0.12);
+  }
 
   async function handleUpload() {
     if (!file || !title.trim()) {
       setError("Please enter a title and select a video.");
+      playError();
       return;
     }
     setError("");
     setUploading(true);
     setProgress(0);
+    lastTickProgress.current = -1;
     try {
       const res = await fetch("/api/storage/uploads/request-url", {
         method: "POST",
@@ -54,13 +87,17 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
       });
       if (!saveRes.ok) throw new Error("Failed to save video metadata");
 
-      setOpen(false);
-      setTitle("");
-      setFile(null);
-      setProgress(0);
-      onUploaded();
+      playUploadComplete();
+      setTimeout(() => {
+        setOpen(false);
+        setTitle("");
+        setFile(null);
+        setProgress(0);
+        onUploaded();
+      }, 600);
     } catch (err: any) {
       setError(err.message || "Upload failed");
+      playError();
     } finally {
       setUploading(false);
     }
@@ -85,9 +122,12 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[90] flex items-center justify-center"
-            onClick={() => !uploading && setOpen(false)}
           >
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+            {/* Backdrop — separate div so card stopPropagation works cleanly */}
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+              onClick={handleBackdropClick}
+            />
 
             <motion.div
               initial={{ scale: 0.88, opacity: 0, y: 30 }}
@@ -99,7 +139,10 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-display font-bold text-xl text-primary tracking-wide">Upload Video</h3>
-                <button onClick={() => !uploading && setOpen(false)} className="p-1 text-muted-foreground hover:text-white transition-colors">
+                <button
+                  onClick={() => { if (!uploading) setOpen(false); }}
+                  className="p-1 text-muted-foreground hover:text-white transition-colors"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -123,16 +166,17 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-indigo-300 mb-1.5">
                     Video File
                   </label>
+                  {/* Hidden real file input — outside click hierarchy */}
                   <input
                     ref={fileRef}
                     type="file"
                     accept="video/*"
                     className="hidden"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                    onChange={handleFileChange}
                     disabled={uploading}
                   />
                   <button
-                    onClick={() => fileRef.current?.click()}
+                    onClick={openFilePicker}
                     disabled={uploading}
                     className="w-full flex items-center gap-3 bg-white/5 border border-dashed border-white/20 rounded-xl px-4 py-3 text-sm text-white/60 hover:border-primary/50 hover:text-white transition-all"
                   >

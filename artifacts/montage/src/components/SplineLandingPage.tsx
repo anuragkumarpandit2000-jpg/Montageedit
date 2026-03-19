@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { SplineScene } from "@/components/ui/splite";
 import { Spotlight } from "@/components/ui/spotlight";
+import { playRobotBoot } from "@/lib/sounds";
 
 interface SplineLandingPageProps {
   onGone: () => void;
@@ -11,6 +12,12 @@ interface SplineLandingPageProps {
 export function SplineLandingPage({ onGone }: SplineLandingPageProps) {
   const [shouldExit, setShouldExit] = useState(false);
   const exitTriggered = useRef(false);
+
+  // Play robot boot sound as soon as the page appears
+  useEffect(() => {
+    const t = setTimeout(() => playRobotBoot(), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   const triggerExit = () => {
     if (exitTriggered.current) return;

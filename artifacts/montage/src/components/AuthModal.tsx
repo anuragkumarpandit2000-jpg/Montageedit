@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { X, Eye, EyeOff, Film, Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { playClick, playCardLand, playError } from "@/lib/sounds";
 
 const DUST_COUNT = 28;
 const PW_LABEL = "Password".split("");
@@ -81,6 +82,7 @@ export function AuthModal() {
     setLanded(true);
     setDustKey((k) => k + 1);
     setShowDust(true);
+    playCardLand();
     setTimeout(() => setShowDust(false), 900);
   }
 
@@ -109,6 +111,7 @@ export function AuthModal() {
     } catch (err: any) {
       const msg: string = err?.message ?? "Something went wrong";
       setError(msg);
+      playError();
       if (msg.toLowerCase().includes("password") || msg.toLowerCase().includes("invalid")) {
         setWrongPw(true);
         setShowForgotLink(true);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AnimatePresence } from "framer-motion";
@@ -13,6 +13,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { SplineLandingPage } from "@/components/SplineLandingPage";
 import { useScrollSound } from "@/hooks/useScrollSound";
+import { playClick } from "@/lib/sounds";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,18 @@ function App() {
   const [splineGone, setSplineGone] = useState(false);
 
   useScrollSound();
+
+  // Global click sound — fires for any button or anchor click on the site
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.closest("button, a, [role='button']")) {
+        playClick(0.16);
+      }
+    };
+    document.addEventListener("click", handler, { capture: true });
+    return () => document.removeEventListener("click", handler, { capture: true });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
