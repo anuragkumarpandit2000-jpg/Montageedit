@@ -5,6 +5,7 @@ import {
   Film, Plus, Upload, X, CheckCircle2,
 } from "lucide-react";
 import { VideoPlayer } from "./VideoPlayer";
+import { AdminUpload } from "./AdminUpload";
 import { useAuth } from "@/context/AuthContext";
 
 /* ── types ── */
@@ -650,29 +651,11 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
     );
   }
 
-  const renderImportCard = () => (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key="import-card"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.38, delay: videos.length * 0.07 }}
-      >
-        <ImportCard
-          category={category}
-          onUploaded={() => setInternalRefresh((k) => k + 1)}
-        />
-      </motion.div>
-    </AnimatePresence>
-  );
-
   /* ── empty state ── */
   if (videos.length === 0) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {user?.isAdmin ? (
-          renderImportCard()
-        ) : (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
             <motion.div
               className="w-20 h-20 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-5"
@@ -682,10 +665,15 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
               <Film className="w-10 h-10 text-indigo-400/60" />
             </motion.div>
             <p className="text-muted-foreground font-medium text-lg mb-1">No videos yet</p>
-            <p className="text-white/25 text-sm">Videos will appear here once uploaded</p>
+            <p className="text-white/25 text-sm">
+              {user?.isAdmin ? "Tap the + button to upload your first video" : "Videos will appear here once uploaded"}
+            </p>
           </div>
+        </div>
+        {user?.isAdmin && (
+          <AdminUpload category={category} onUploaded={() => setInternalRefresh((k) => k + 1)} />
         )}
-      </div>
+      </>
     );
   }
 
@@ -755,9 +743,12 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
           </motion.div>
         ))}
 
-        {/* Import card always appended for admin */}
-        {user?.isAdmin && renderImportCard()}
       </div>
+
+      {/* Floating upload FAB for admin */}
+      {user?.isAdmin && (
+        <AdminUpload category={category} onUploaded={() => setInternalRefresh((k) => k + 1)} />
+      )}
 
       {/* Context menu popup */}
       <AnimatePresence>
