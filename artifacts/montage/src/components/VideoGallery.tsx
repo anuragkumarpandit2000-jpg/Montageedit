@@ -62,6 +62,62 @@ function captureVideoThumbnail(file: File): Promise<Blob | null> {
   });
 }
 
+/* ── Futuristic SFX via Web Audio API ── */
+function createAudioCtx(): AudioContext | null {
+  try { return new (window.AudioContext || (window as any).webkitAudioContext)(); }
+  catch { return null; }
+}
+
+function playUploadStartSFX() {
+  const ctx = createAudioCtx(); if (!ctx) return;
+  const t = ctx.currentTime;
+  [200, 400, 700, 1100].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.setValueAtTime(freq, t + i * 0.07);
+    gain.gain.setValueAtTime(0, t + i * 0.07);
+    gain.gain.linearRampToValueAtTime(0.18, t + i * 0.07 + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.07 + 0.22);
+    osc.start(t + i * 0.07); osc.stop(t + i * 0.07 + 0.25);
+  });
+}
+
+function playUploadTickSFX(progress: number) {
+  const ctx = createAudioCtx(); if (!ctx) return;
+  const baseFreq = 400 + (progress / 100) * 900;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = "square"; osc.frequency.setValueAtTime(baseFreq, t);
+  osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.4, t + 0.08);
+  gain.gain.setValueAtTime(0.07, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  osc.start(t); osc.stop(t + 0.14);
+}
+
+function playUploadCompleteSFX() {
+  const ctx = createAudioCtx(); if (!ctx) return;
+  const t = ctx.currentTime;
+  [523, 659, 784, 1047].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.setValueAtTime(freq, t + i * 0.1);
+    gain.gain.setValueAtTime(0, t + i * 0.1);
+    gain.gain.linearRampToValueAtTime(0.22, t + i * 0.1 + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.4);
+    osc.start(t + i * 0.1); osc.stop(t + i * 0.1 + 0.45);
+  });
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 /* ═══════════════════════════════════════════
    CINEMATIC PRE-LOADER  (plays while picker
    opens in the background)
@@ -246,12 +302,15 @@ function UploadAnimation({ progress, fileName }: { progress: number; fileName: s
 type UploadStatus = "idle" | "cinematic" | "selected" | "uploading" | "done";
 
 function ImportCard({ category, onUploaded }: { category: string; onUploaded: () => void }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [file, setFile]       = useState<File | null>(null);
-  const [title, setTitle]     = useState("");
+  const fileRef   = useRef<HTMLInputElement>(null);
+  const tickRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastTickProgress = useRef(0);
+
+  const [file, setFile]         = useState<File | null>(null);
+  const [title, setTitle]       = useState("");
   const [progress, setProgress] = useState(0);
-  const [status, setStatus]   = useState<UploadStatus>("idle");
-  const [error, setError]     = useState("");
+  const [status, setStatus]     = useState<UploadStatus>("idle");
+  const [error, setError]       = useState("");
 
   /* Click "+": open picker immediately AND show cinematic for 1.6s */
   function triggerPicker() {
@@ -271,14 +330,27 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
   }
 
   function reset() {
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     setFile(null); setTitle(""); setProgress(0);
     setStatus("idle"); setError("");
     if (fileRef.current) fileRef.current.value = "";
+    lastTickProgress.current = 0;
   }
 
   async function handleUpload() {
     if (!file || !title.trim()) return;
     setStatus("uploading"); setError(""); setProgress(0);
+    lastTickProgress.current = 0;
+
+    /* Start futuristic upload SFX */
+    playUploadStartSFX();
+
+    /* Periodic tick SFX every 800ms, pitch rises with progress */
+    tickRef.current = setInterval(() => {
+      const p = lastTickProgress.current;
+      if (p < 100) playUploadTickSFX(p);
+    }, 800);
+
     try {
       /* ── Step 1: capture a thumbnail frame from the video (background) ── */
       const thumbCapturePromise = captureVideoThumbnail(file);
@@ -299,7 +371,11 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
         xhr.open("PUT", uploadURL);
         xhr.setRequestHeader("Content-Type", file.type);
         xhr.upload.addEventListener("progress", (ev) => {
-          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+          if (ev.lengthComputable) {
+            const pct = Math.round((ev.loaded / ev.total) * 100);
+            lastTickProgress.current = pct;
+            setProgress(pct);
+          }
         });
         xhr.onload  = () => (xhr.status < 400 ? resolve() : reject(new Error("Storage upload failed")));
         xhr.onerror = () => reject(new Error("Network error"));
@@ -345,9 +421,12 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
       });
       if (!saveRes.ok) throw new Error("Failed to save video");
 
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+      playUploadCompleteSFX();
       setStatus("done");
-      setTimeout(() => { reset(); onUploaded(); }, 1000);
+      setTimeout(() => { reset(); onUploaded(); }, 1200);
     } catch (err: any) {
+      if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
       setError(err?.message ?? "Upload failed");
       setStatus("selected");
     }
@@ -406,11 +485,21 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
       >
         {/* Top bar */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="w-7 h-7 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
               <Film className="w-3.5 h-3.5 text-primary" />
             </div>
-            <span className="text-xs text-white/55 truncate">{file?.name}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-white/65 truncate leading-tight">{file?.name}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-mono bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded uppercase tracking-widest">
+                  {file?.name.split(".").pop() ?? "video"}
+                </span>
+                <span className="text-[10px] text-white/35 font-mono">
+                  {file ? formatFileSize(file.size) : ""}
+                </span>
+              </div>
+            </div>
           </div>
           <button onClick={reset} className="text-white/30 hover:text-white/65 transition-colors flex-shrink-0 mt-0.5">
             <X className="w-4 h-4" />
