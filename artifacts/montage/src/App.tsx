@@ -12,6 +12,7 @@ import { CinematicLoader } from "@/components/CinematicLoader";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { SplineLandingPage } from "@/components/SplineLandingPage";
+import { useScrollSound } from "@/hooks/useScrollSound";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,8 @@ function App() {
   const [loaded, setLoaded] = useState(false);
   const [showSpline, setShowSpline] = useState(true);
   const [splineGone, setSplineGone] = useState(false);
+
+  useScrollSound();
 
   return (
     <QueryClientProvider client={queryClient}>
