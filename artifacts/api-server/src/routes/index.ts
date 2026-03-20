@@ -4,6 +4,7 @@ import storageRouter from "./storage";
 import authRouter from "./auth";
 import videosRouter from "./videos";
 import reviewsRouter from "./reviews";
+import statsRouter from "./stats";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(storageRouter);
 router.use(authRouter);
 router.use(videosRouter);
 router.use(reviewsRouter);
+router.use(statsRouter);
 
 export default router;

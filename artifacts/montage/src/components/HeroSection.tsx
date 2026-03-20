@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   motion,
   useScroll,
   useTransform,
   AnimatePresence,
 } from "framer-motion";
-import { ChevronDown, Sparkles, Star, X, Send, MessageSquarePlus } from "lucide-react";
+import { ChevronDown, Sparkles, Star, X, Send, MessageSquarePlus, Users } from "lucide-react";
 import { CinematicButton } from "./CinematicButton";
+import { useAuth } from "@/context/AuthContext";
 
 /* Deterministic particles — no random on every render */
 const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
@@ -44,6 +45,103 @@ const FAKE_REVIEWS = [
   { name: "Aditya Rawat", rating: 4, comment: "Good work overall. Pehle draft mein ek revision tha but second draft perfect nikla. Communication bhi clear tha puri process mein.", avatar: "AR" },
   { name: "Tanvi Khanna", rating: 5, comment: "Mere brand promo video ke liye kaam kiya — client presentation mein sab impressed the. Editing style unique aur modern hai!", avatar: "TK" },
 ];
+
+/* ── Live site stats hook ── */
+function useSiteStats() {
+  const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [avgRating, setAvgRating]       = useState<number>(0);
+  const [reviewCount, setReviewCount]   = useState<number>(0);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const displayRef = useRef<number>(0);
+
+  useEffect(() => {
+    /* Log visit + get initial count */
+    fetch("/api/stats/visit", { method: "POST", credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        displayRef.current = d.visitorCount ?? 20000;
+        setVisitorCount(d.visitorCount ?? 20000);
+      })
+      .catch(() => setVisitorCount(20183));
+
+    /* Fetch rating */
+    fetch("/api/stats", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        setAvgRating(d.avgRating ?? 0);
+        setReviewCount(d.reviewCount ?? 0);
+      })
+      .catch(() => {});
+
+    /* "Live" tick — increment display by 1-2 every ~6s for non-admin feel */
+    tickRef.current = setInterval(() => {
+      const bump = Math.random() > 0.4 ? 1 : 0;
+      displayRef.current += bump;
+      setVisitorCount((v) => (v !== null ? v + bump : v));
+    }, 6000);
+
+    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+  }, []);
+
+  return { visitorCount, avgRating, reviewCount };
+}
+
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  return `${n}`;
+}
+
+/* ── Live visitor badge (top of hero) ── */
+function LiveVisitorBadge({ count }: { count: number | null }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-green-500/30 bg-green-500/10 backdrop-blur-sm mb-4"
+    >
+      {/* Pulsing green dot */}
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+      </span>
+      <Users className="w-3.5 h-3.5 text-green-400" />
+      <span className="text-xs font-bold text-green-300 tracking-widest">
+        {count !== null ? (
+          <motion.span key={count} initial={{ opacity: 0.5, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            {formatCount(count)}
+          </motion.span>
+        ) : "…"} VISITORS
+      </span>
+    </motion.div>
+  );
+}
+
+/* ── Live rating row ── */
+function LiveRatingRow({ avg, total }: { avg: number; total: number }) {
+  if (total === 0 && avg === 0) return null;
+  const stars = Math.round(avg * 2) / 2; // nearest 0.5
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      transition={{ delay: 1.4, duration: 0.5 }}
+      className="flex items-center gap-2 justify-center"
+    >
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            className={`w-3.5 h-3.5 ${s <= stars ? "text-yellow-400 fill-yellow-400" : s - 0.5 <= stars ? "text-yellow-400 fill-yellow-400/50" : "text-white/20"}`}
+          />
+        ))}
+      </div>
+      <span className="text-sm font-bold text-yellow-300">{avg > 0 ? avg.toFixed(1) : "—"} ⭐</span>
+      <span className="text-xs text-white/40">/ 5 ⭐</span>
+      {total > 0 && <span className="text-[11px] text-white/30 ml-1">({total} reviews)</span>}
+    </motion.div>
+  );
+}
 
 function StarRow({ rating }: { rating: number }) {
   return (
@@ -214,6 +312,7 @@ export function HeroSection() {
 
   const [showWrite, setShowWrite] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const { visitorCount, avgRating, reviewCount } = useSiteStats();
 
   useMemo(() => PARTICLES, []);
 
@@ -250,6 +349,9 @@ export function HeroSection() {
 
       {/* ── Main content ── */}
       <div className="relative z-10 max-w-5xl mx-auto px-6 text-center mt-20">
+
+        {/* Live visitor counter */}
+        <LiveVisitorBadge count={visitorCount} />
 
         {/* Badge */}
         <motion.div
@@ -337,6 +439,9 @@ export function HeroSection() {
               View All Reviews
             </motion.button>
           </motion.div>
+
+          {/* Live rating row */}
+          <LiveRatingRow avg={avgRating} total={reviewCount} />
         </motion.div>
       </div>
 
