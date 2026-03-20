@@ -107,7 +107,7 @@ export function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center"
+            className="fixed inset-0 z-50 bg-background backdrop-blur-xl flex flex-col items-center justify-center"
           >
             <button
               className="absolute top-6 right-6 p-2 text-foreground"
