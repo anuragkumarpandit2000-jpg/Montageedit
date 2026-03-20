@@ -90,13 +90,15 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button
-          className="md:hidden text-foreground p-2"
-          onClick={() => setMobileMenuOpen(true)}
-        >
-          <Menu className="w-6 h-6" />
-        </button>
+        {/* Mobile Menu Toggle — hidden when scrolled */}
+        {!isScrolled && (
+          <button
+            className="md:hidden text-foreground p-2"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
       {/* Mobile Nav Overlay */}
@@ -107,7 +109,7 @@ export function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-50 bg-background backdrop-blur-xl flex flex-col items-center justify-center"
+            className="fixed inset-0 z-50 bg-[#050508] flex flex-col items-center justify-center"
           >
             <button
               className="absolute top-6 right-6 p-2 text-foreground"
