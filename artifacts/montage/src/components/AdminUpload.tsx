@@ -51,12 +51,13 @@ function sfxDone() {
   });
 }
 
-/* ── Thumbnail: first frame of video ── */
+/* ── Thumbnail: first frame, cropped to 9:16 portrait ── */
 function captureFirstFrame(file: File): Promise<Blob | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
     const canvas = document.createElement("canvas");
-    canvas.width = 1280; canvas.height = 720;
+    const TW = 720; const TH = 1280; // 9:16
+    canvas.width = TW; canvas.height = TH;
     const ctx = canvas.getContext("2d");
     let done = false;
     const finish = (b: Blob | null) => { if (!done) { done = true; URL.revokeObjectURL(video.src); resolve(b); } };
@@ -66,8 +67,16 @@ function captureFirstFrame(file: File): Promise<Blob | null> {
     video.onseeked = () => {
       clearTimeout(timeout);
       try {
-        ctx?.drawImage(video, 0, 0, 1280, 720);
-        canvas.toBlob((b) => finish(b), "image/jpeg", 0.92);
+        if (ctx) {
+          const vw = video.videoWidth || 1280;
+          const vh = video.videoHeight || 720;
+          // Scale so height fills TH, then center-crop width to TW
+          const scale = TH / vh;
+          const scaledW = vw * scale;
+          const sx = (scaledW - TW) / 2;
+          ctx.drawImage(video, -sx, 0, scaledW, TH);
+          canvas.toBlob((b) => finish(b), "image/jpeg", 0.92);
+        } else { finish(null); }
       } catch { finish(null); }
     };
     video.onerror = () => { clearTimeout(timeout); finish(null); };
