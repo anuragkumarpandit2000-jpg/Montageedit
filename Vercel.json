@@ -1,0 +1,12 @@
+{
+  "builds": [
+    {
+      "src": "artifacts/api-server/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "buildCommand": "pnpm run build",
+        "includeFiles": ["dist/**"]
+      }
+    }
+  ]
+}
