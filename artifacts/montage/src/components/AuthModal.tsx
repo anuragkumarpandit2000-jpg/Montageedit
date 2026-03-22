@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
-import { X, Eye, EyeOff, Film, Loader2, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { X, Eye, EyeOff, Film, Loader2, Mail, ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { playClick, playCardLand, playError } from "@/lib/sounds";
 
 const DUST_COUNT = 28;
 const PW_LABEL = "Password".split("");
 
-type ModalView = "auth" | "forgot" | "forgot-sent";
+type ModalView = "auth" | "otp" | "forgot" | "forgot-sent";
 
 /* ── Dust particle that scatters on card-land ── */
 function DustParticle({ i, total }: { i: number; total: number }) {
@@ -37,7 +37,7 @@ function DustParticle({ i, total }: { i: number; total: number }) {
 }
 
 export function AuthModal() {
-  const { modalOpen, closeModal, login, signup } = useAuth();
+  const { modalOpen, closeModal, login, sendOtp, verifyOtp } = useAuth();
 
   /* ── view / auth state ── */
   const [view, setView]       = useState<ModalView>("auth");
@@ -50,6 +50,13 @@ export function AuthModal() {
   const [error, setError]     = useState("");
   const [wrongPw, setWrongPw] = useState(false);
   const [showForgotLink, setShowForgotLink] = useState(false);
+
+  /* ── OTP state ── */
+  const [otp, setOtp]               = useState(["", "", "", "", "", ""]);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError]     = useState("");
+  const [otpEmail, setOtpEmail]     = useState("");
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   /* ── forgot password state ── */
   const [forgotEmail, setForgotEmail]     = useState("");
@@ -72,6 +79,7 @@ export function AuthModal() {
       setEmail(""); setPw(""); setConfirm("");
       setError(""); setWrongPw(false); setShowForgotLink(false);
       setForgotEmail(""); setForgotError("");
+      setOtp(["", "", "", "", "", ""]); setOtpError(""); setOtpEmail("");
       setLanded(false); setShowDust(false);
     }
   }, [modalOpen]);
@@ -100,14 +108,33 @@ export function AuthModal() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(""); setShowForgotLink(false);
-    if (tab === "signup" && pw !== confirm) {
-      setError("Passwords do not match");
+
+    if (tab === "signup") {
+      if (pw !== confirm) {
+        setError("Passwords do not match");
+        return;
+      }
+      setLoading(true);
+      try {
+        await sendOtp(email, pw);
+        setOtpEmail(email);
+        setView("otp");
+        setOtp(["", "", "", "", "", ""]);
+        setOtpError("");
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      } catch (err: any) {
+        const msg: string = err?.message ?? "Something went wrong";
+        setError(msg);
+        playError();
+      } finally {
+        setLoading(false);
+      }
       return;
     }
+
     setLoading(true);
     try {
-      if (tab === "login") await login(email, pw);
-      else                  await signup(email, pw);
+      await login(email, pw);
     } catch (err: any) {
       const msg: string = err?.message ?? "Something went wrong";
       setError(msg);
@@ -119,6 +146,57 @@ export function AuthModal() {
       }
     } finally {
       setLoading(false);
+    }
+  }
+
+  /* ── OTP input handlers ── */
+  function handleOtpChange(index: number, value: string) {
+    if (!/^\d*$/.test(value)) return;
+    const next = [...otp];
+    next[index] = value.slice(-1);
+    setOtp(next);
+    setOtpError("");
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowLeft" && index > 0) otpRefs.current[index - 1]?.focus();
+    if (e.key === "ArrowRight" && index < 5) otpRefs.current[index + 1]?.focus();
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent) {
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (paste.length > 0) {
+      e.preventDefault();
+      const next = [...otp];
+      paste.split("").forEach((ch, i) => { next[i] = ch; });
+      setOtp(next);
+      otpRefs.current[Math.min(paste.length, 5)]?.focus();
+    }
+  }
+
+  /* ── OTP verify submit ── */
+  async function handleOtpSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const code = otp.join("");
+    if (code.length !== 6) {
+      setOtpError("Please enter the full 6-digit code");
+      return;
+    }
+    setOtpLoading(true);
+    setOtpError("");
+    try {
+      await verifyOtp(otpEmail, code);
+    } catch (err: any) {
+      setOtpError(err?.message ?? "Verification failed. Please try again.");
+      playError();
+    } finally {
+      setOtpLoading(false);
     }
   }
 
@@ -202,9 +280,18 @@ export function AuthModal() {
                   {/* header */}
                   <div className="px-8 pt-7 pb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      {view !== "auth" && (
+                      {(view === "forgot" || view === "forgot-sent" || view === "otp") && (
                         <button
-                          onClick={() => { setView("auth"); setForgotEmail(""); setForgotError(""); }}
+                          onClick={() => {
+                            if (view === "otp") {
+                              setView("auth");
+                              setOtp(["", "", "", "", "", ""]);
+                              setOtpError("");
+                            } else {
+                              setView("auth");
+                              setForgotEmail(""); setForgotError("");
+                            }
+                          }}
                           className="p-1.5 rounded-full text-white/35 hover:text-white/80 hover:bg-white/10 transition-all mr-0.5"
                         >
                           <ArrowLeft className="w-4 h-4" />
@@ -323,7 +410,7 @@ export function AuthModal() {
                               </button>
                             </motion.div>
 
-                            {/* Forgot password link — appears after wrong password */}
+                            {/* Forgot password link */}
                             <AnimatePresence>
                               {showForgotLink && tab === "login" && (
                                 <motion.div
@@ -396,8 +483,8 @@ export function AuthModal() {
                             className="w-full py-3.5 rounded-xl font-display font-bold text-sm tracking-wider text-white bg-gradient-to-r from-primary to-accent disabled:opacity-45 disabled:cursor-not-allowed transition-all shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_50px_rgba(99,102,241,0.7)] flex items-center justify-center gap-2"
                           >
                             {loading ? (
-                              <><Loader2 className="w-4 h-4 animate-spin" /> {tab === "login" ? "Logging in…" : "Creating account…"}</>
-                            ) : tab === "login" ? "Login" : "Create Account"}
+                              <><Loader2 className="w-4 h-4 animate-spin" /> {tab === "login" ? "Logging in…" : "Sending OTP…"}</>
+                            ) : tab === "login" ? "Login" : "Send OTP →"}
                           </motion.button>
 
                           {/* switch tab hint */}
@@ -409,6 +496,101 @@ export function AuthModal() {
                               className="text-primary/75 hover:text-primary underline underline-offset-2 transition-colors"
                             >
                               {tab === "login" ? "Sign up" : "Login"}
+                            </button>
+                          </p>
+                        </form>
+                      </motion.div>
+                    )}
+
+                    {/* ══════════ OTP VIEW ══════════ */}
+                    {view === "otp" && (
+                      <motion.div
+                        key="otp-view"
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -30 }}
+                        transition={{ duration: 0.22 }}
+                      >
+                        <form onSubmit={handleOtpSubmit} className="px-8 pt-5 pb-7 space-y-5">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
+                                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                              </div>
+                              <h3 className="font-display font-bold text-white text-sm tracking-wide">Verify Your Email</h3>
+                            </div>
+                            <p className="text-white/38 text-[12px] leading-relaxed">
+                              We sent a 6-digit code to{" "}
+                              <span className="text-primary/80 font-semibold break-all">{otpEmail}</span>.
+                              Enter it below to create your account.
+                            </p>
+                          </div>
+
+                          {/* OTP boxes */}
+                          <div className="flex gap-2.5 justify-center" onPaste={handleOtpPaste}>
+                            {otp.map((digit, i) => (
+                              <input
+                                key={i}
+                                ref={(el) => { otpRefs.current[i] = el; }}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={digit}
+                                onChange={(e) => handleOtpChange(i, e.target.value)}
+                                onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                                className={`w-11 h-13 text-center text-xl font-bold text-white rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 bg-white/[0.05] ${
+                                  digit
+                                    ? "border-primary/60 bg-indigo-500/[0.1]"
+                                    : "border-white/15 focus:border-primary/50"
+                                } ${otpError ? "border-red-400/60" : ""}`}
+                                style={{ fontSize: "1.25rem", height: "3.25rem" }}
+                              />
+                            ))}
+                          </div>
+
+                          <AnimatePresence>
+                            {otpError && (
+                              <motion.p
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-center"
+                              >
+                                {otpError}
+                              </motion.p>
+                            )}
+                          </AnimatePresence>
+
+                          <motion.button
+                            type="submit"
+                            disabled={otpLoading || otp.join("").length !== 6}
+                            whileHover={{ scale: 1.025 }}
+                            whileTap={{ scale: 0.975 }}
+                            className="w-full py-3.5 rounded-xl font-display font-bold text-sm tracking-wider text-white bg-gradient-to-r from-primary to-accent disabled:opacity-45 disabled:cursor-not-allowed transition-all shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:shadow-[0_0_50px_rgba(99,102,241,0.7)] flex items-center justify-center gap-2"
+                          >
+                            {otpLoading ? (
+                              <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</>
+                            ) : (
+                              <><ShieldCheck className="w-4 h-4" /> Verify & Create Account</>
+                            )}
+                          </motion.button>
+
+                          <p className="text-center text-[12px] text-white/30">
+                            Didn't receive the code?{" "}
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setOtpError("");
+                                setOtp(["", "", "", "", "", ""]);
+                                try {
+                                  await sendOtp(otpEmail, pw);
+                                } catch (err: any) {
+                                  setOtpError(err?.message ?? "Failed to resend OTP");
+                                }
+                              }}
+                              className="text-primary/75 hover:text-primary underline underline-offset-2 transition-colors"
+                            >
+                              Resend code
                             </button>
                           </p>
                         </form>
