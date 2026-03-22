@@ -2,8 +2,6 @@ import { Resend } from "resend";
 
 const resend = new Resend("re_FC4Asuhb_34bv4Go4JZYigjAAd58GTaBz");
 
-const RESEND_VERIFIED_EMAIL = "anuragkumar.pandit2000@gmail.com";
-
 export async function sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
   const html = `
     <!DOCTYPE html>
@@ -23,9 +21,8 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
                 <span style="color:#a5b4fc;font-size:18px;font-weight:700;letter-spacing:4px;">MONTAGE</span>
               </div>
               <h1 style="color:#fff;font-size:26px;font-weight:700;margin:0 0 12px;">Reset Your Password</h1>
-              ${to !== RESEND_VERIFIED_EMAIL ? `<p style="color:#f59e0b;font-size:13px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;margin:0 0 16px;">Password reset requested for: <strong>${to}</strong></p>` : ""}
               <p style="color:rgba(255,255,255,0.55);font-size:15px;line-height:1.6;margin:0 0 32px;">
-                Click the button below to reset the password. This link expires in <strong style="color:#a5b4fc;">1 hour</strong>.
+                Click the button below to reset your password. This link expires in <strong style="color:#a5b4fc;">1 hour</strong>.
               </p>
             </td></tr>
             <tr><td style="padding:0 40px 32px;">
@@ -54,14 +51,10 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
     </html>
   `;
 
-  const deliverTo = RESEND_VERIFIED_EMAIL;
-
   const { error } = await resend.emails.send({
     from: "Montage Support <onboarding@resend.dev>",
-    to: deliverTo,
-    subject: to === RESEND_VERIFIED_EMAIL
-      ? "Reset Your Montage Password"
-      : `Montage: Password Reset for ${to}`,
+    to,
+    subject: "Reset Your Montage Password",
     html,
   });
 
@@ -74,7 +67,7 @@ export async function sendPasswordResetEmail(to: string, resetLink: string): Pro
     throw new Error(`Failed to send reset email: ${error.message}`);
   }
 
-  console.log(`Password reset email delivered to ${deliverTo} (requested for: ${to})`);
+  console.log(`Password reset email sent to: ${to}`);
 }
 
 export async function sendOtpEmail(to: string, otp: string): Promise<void> {
@@ -96,7 +89,6 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
                 <span style="color:#a5b4fc;font-size:18px;font-weight:700;letter-spacing:4px;">MONTAGE</span>
               </div>
               <h1 style="color:#fff;font-size:26px;font-weight:700;margin:0 0 12px;">Verify Your Email</h1>
-              ${to !== RESEND_VERIFIED_EMAIL ? `<p style="color:#f59e0b;font-size:13px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;margin:0 0 16px;">OTP verification for: <strong>${to}</strong></p>` : ""}
               <p style="color:rgba(255,255,255,0.55);font-size:15px;line-height:1.6;margin:0 0 24px;">
                 Use the code below to complete your registration. It expires in <strong style="color:#a5b4fc;">10 minutes</strong>.
               </p>
@@ -122,14 +114,10 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
     </html>
   `;
 
-  const deliverTo = RESEND_VERIFIED_EMAIL;
-
   const { error } = await resend.emails.send({
     from: "Montage <onboarding@resend.dev>",
-    to: deliverTo,
-    subject: to === RESEND_VERIFIED_EMAIL
-      ? "Your Montage Verification Code"
-      : `Montage: Verification Code for ${to}`,
+    to,
+    subject: "Your Montage Verification Code",
     html,
   });
 
@@ -142,5 +130,5 @@ export async function sendOtpEmail(to: string, otp: string): Promise<void> {
     throw new Error(`Failed to send OTP email: ${error.message}`);
   }
 
-  console.log(`OTP email delivered to ${deliverTo} (requested for: ${to}), OTP: ${otp}`);
+  console.log(`OTP email sent to: ${to}`);
 }
