@@ -15,7 +15,7 @@ interface Video {
 }
 interface VideoGalleryProps { category: string; refreshKey?: number; }
 
-/* ── Capture a frame from the video file as a JPEG blob ── */
+/* ── Capture the middle frame from the video file as a JPEG blob ── */
 function captureVideoThumbnail(file: File): Promise<Blob | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
@@ -40,7 +40,10 @@ function captureVideoThumbnail(file: File): Promise<Blob | null> {
     video.preload = "metadata";
 
     video.onloadedmetadata = () => {
-      video.currentTime = Math.min(1.5, video.duration * 0.05);
+      const mid = isFinite(video.duration) && video.duration > 0
+        ? video.duration / 2
+        : 1;
+      video.currentTime = mid;
     };
 
     video.onseeked = () => {

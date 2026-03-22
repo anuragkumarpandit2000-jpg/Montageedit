@@ -51,7 +51,7 @@ function sfxDone() {
   });
 }
 
-/* ── Thumbnail: first frame, cropped to 9:16 portrait ── */
+/* ── Thumbnail: middle frame, cropped to 9:16 portrait ── */
 function captureFirstFrame(file: File): Promise<Blob | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
@@ -63,7 +63,10 @@ function captureFirstFrame(file: File): Promise<Blob | null> {
     const finish = (b: Blob | null) => { if (!done) { done = true; URL.revokeObjectURL(video.src); resolve(b); } };
     const timeout = setTimeout(() => finish(null), 12_000);
     video.muted = true; video.playsInline = true; video.preload = "metadata";
-    video.onloadedmetadata = () => { video.currentTime = 0.01; };
+    video.onloadedmetadata = () => {
+      const mid = isFinite(video.duration) && video.duration > 0 ? video.duration / 2 : 1;
+      video.currentTime = mid;
+    };
     video.onseeked = () => {
       clearTimeout(timeout);
       try {
