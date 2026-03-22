@@ -15,8 +15,7 @@ interface AuthContextValue {
   openModal: (pendingCategory?: string) => void;
   closeModal: () => void;
   login: (email: string, password: string) => Promise<void>;
-  sendOtp: (email: string, password: string) => Promise<void>;
-  verifyOtp: (email: string, otp: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -63,26 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (target) navigate(`/portfolio/${target}`);
   }, [pendingCategory, navigate]);
 
-  const sendOtp = useCallback(async (email: string, password: string) => {
-    const res = await fetch("/api/auth/send-otp", {
+  const signup = useCallback(async (email: string, password: string) => {
+    const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to send OTP");
-  }, []);
-
-  const verifyOtp = useCallback(async (email: string, otp: string) => {
-    const res = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, otp }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "OTP verification failed");
+    if (!res.ok) throw new Error(data.error || "Signup failed");
     setUser(data.user);
     const target = pendingCategory;
     setModalOpen(false);
@@ -97,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, modalOpen, pendingCategory, openModal, closeModal, login, sendOtp, verifyOtp, logout }}>
+    <AuthContext.Provider value={{ user, loading, modalOpen, pendingCategory, openModal, closeModal, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );
