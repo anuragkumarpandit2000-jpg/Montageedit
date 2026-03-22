@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Star, Quote, Send, MessageSquarePlus, LogIn } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,7 @@ function StarRating({
   onHover,
   onLeave,
   readonly = false,
+  size = "lg",
 }: {
   rating: number;
   hovered: number;
@@ -26,9 +27,11 @@ function StarRating({
   onHover: (n: number) => void;
   onLeave: () => void;
   readonly?: boolean;
+  size?: "sm" | "lg";
 }) {
+  const sizeClass = size === "sm" ? "w-4 h-4" : "w-8 h-8";
   return (
-    <div className="flex gap-2" onMouseLeave={onLeave}>
+    <div className="flex gap-1.5" onMouseLeave={onLeave}>
       {[1, 2, 3, 4, 5].map((star) => {
         const active = star <= (hovered || rating);
         return (
@@ -42,7 +45,7 @@ function StarRating({
             className={`transition-transform duration-150 focus:outline-none ${readonly ? "cursor-default" : "hover:scale-125"}`}
           >
             <Star
-              className={`w-8 h-8 transition-all duration-200 ${
+              className={`${sizeClass} transition-all duration-200 ${
                 active
                   ? "text-primary drop-shadow-[0_0_10px_rgba(99,102,241,0.9)]"
                   : "text-white/20"
@@ -89,6 +92,52 @@ function ReviewCard({ review, index }: { review: ApiReview; index: number }) {
         <p className="text-xs text-muted-foreground">
           {new Date(review.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Rating summary bar ── */
+function RatingSummary({ reviews }: { reviews: ApiReview[] }) {
+  const avg = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    return reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  }, [reviews]);
+
+  const total = reviews.length;
+  const displayAvg = avg.toFixed(1);
+
+  if (total === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="flex items-center justify-center gap-4 mb-10"
+    >
+      <div className="inline-flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-sm">
+        {/* Big avg number */}
+        <span className="text-3xl font-black text-white leading-none">{displayAvg}</span>
+
+        {/* Stars */}
+        <div className="flex flex-col gap-1">
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const filled = star <= Math.round(avg);
+              return (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${filled ? "text-yellow-400 drop-shadow-[0_0_6px_rgba(234,179,8,0.7)]" : "text-white/20"}`}
+                  fill={filled ? "currentColor" : "none"}
+                />
+              );
+            })}
+          </div>
+          <span className="text-xs text-white/45 font-medium">
+            {total} {total === 1 ? "review" : "reviews"}
+          </span>
+        </div>
       </div>
     </motion.div>
   );
@@ -178,24 +227,34 @@ export function ClientReviewForm() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-64 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="max-w-4xl mx-auto px-6 relative z-10">
-        <div className="text-center mb-14">
+
+        {/* ── Header ── */}
+        <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 backdrop-blur-sm mb-6">
             <MessageSquarePlus className="w-4 h-4 text-primary" />
             <span className="text-xs font-semibold tracking-widest uppercase text-primary">Share Your Experience</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-glow-primary inline-block">
-            Leave a Review
+            Reviews
           </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto opacity-50" />
         </div>
 
-        {/* Form card */}
-        <div className="relative rounded-3xl overflow-hidden p-px mb-12">
+        {/* ── Average Rating Summary ── */}
+        {!loadingReviews && <RatingSummary reviews={reviews} />}
+
+        {/* ── Write a Review Form ── */}
+        <div className="relative rounded-3xl overflow-hidden p-px mb-10">
           <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-30 blur-md" />
           <form
             onSubmit={handleSubmit}
             className="relative bg-card rounded-[23px] p-8 md:p-10 border border-white/10 backdrop-blur-xl"
           >
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" fill="currentColor" />
+              Write a Review
+            </h3>
+
             {!user && (
               <div className="flex items-center gap-3 mb-7 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 text-sm text-primary">
                 <LogIn className="w-4 h-4 shrink-0" />
@@ -281,7 +340,7 @@ export function ClientReviewForm() {
                   exit={{ opacity: 0 }}
                   className="text-green-400 text-sm font-medium mb-4"
                 >
-                  Review submitted! Thank you.
+                  ✓ Review submitted! Thank you.
                 </motion.p>
               )}
             </AnimatePresence>
@@ -297,7 +356,7 @@ export function ClientReviewForm() {
           </form>
         </div>
 
-        {/* Submitted reviews list */}
+        {/* ── Community Reviews List ── */}
         {loadingReviews ? (
           <div className="text-center text-muted-foreground text-sm py-8">Loading reviews...</div>
         ) : reviews.length > 0 ? (
@@ -307,13 +366,17 @@ export function ClientReviewForm() {
             className="space-y-4"
           >
             <h3 className="text-lg font-semibold uppercase tracking-widest text-muted-foreground mb-6 text-center">
-              Community Reviews
+              All Reviews ({reviews.length})
             </h3>
             {reviews.map((review, index) => (
               <ReviewCard key={review.id} review={review} index={index} />
             ))}
           </motion.div>
-        ) : null}
+        ) : (
+          <p className="text-center text-muted-foreground/50 text-sm py-4">
+            No reviews yet — be the first to share your experience!
+          </p>
+        )}
       </div>
     </AnimatedSection>
   );
