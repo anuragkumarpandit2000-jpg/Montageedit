@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { PortfolioSection } from "@/components/PortfolioSection";
 import { FreeEditSection } from "@/components/FreeEditSection";
 import { HireMeSection } from "@/components/HireMeSection";
+import { ClientReviewForm } from "@/components/ClientReviewForm";
 import { AboutSection } from "@/components/AboutSection";
 import { Footer } from "@/components/Footer";
 
@@ -19,6 +20,7 @@ export default function Home() {
 
         <FreeEditSection />
         <HireMeSection />
+        <ClientReviewForm />
         <AboutSection />
       </main>
 
