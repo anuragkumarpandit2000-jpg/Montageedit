@@ -243,8 +243,26 @@ export function ClientReviewForm() {
         {/* ── Average Rating Summary ── */}
         {!loadingReviews && <RatingSummary reviews={reviews} />}
 
+        {/* ── All Reviews List ── */}
+        {loadingReviews ? (
+          <div className="text-center text-muted-foreground text-sm py-8">Loading reviews...</div>
+        ) : reviews.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-4 mb-12"
+          >
+            <h3 className="text-lg font-semibold uppercase tracking-widest text-muted-foreground mb-6 text-center">
+              All Reviews ({reviews.length})
+            </h3>
+            {reviews.map((review, index) => (
+              <ReviewCard key={review.id} review={review} index={index} />
+            ))}
+          </motion.div>
+        ) : null}
+
         {/* ── Write a Review Form ── */}
-        <div className="relative rounded-3xl overflow-hidden p-px mb-10">
+        <div className="relative rounded-3xl overflow-hidden p-px">
           <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary opacity-30 blur-md" />
           <form
             onSubmit={handleSubmit}
@@ -355,28 +373,6 @@ export function ClientReviewForm() {
             </button>
           </form>
         </div>
-
-        {/* ── Community Reviews List ── */}
-        {loadingReviews ? (
-          <div className="text-center text-muted-foreground text-sm py-8">Loading reviews...</div>
-        ) : reviews.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-4"
-          >
-            <h3 className="text-lg font-semibold uppercase tracking-widest text-muted-foreground mb-6 text-center">
-              All Reviews ({reviews.length})
-            </h3>
-            {reviews.map((review, index) => (
-              <ReviewCard key={review.id} review={review} index={index} />
-            ))}
-          </motion.div>
-        ) : (
-          <p className="text-center text-muted-foreground/50 text-sm py-4">
-            No reviews yet — be the first to share your experience!
-          </p>
-        )}
       </div>
     </AnimatedSection>
   );
