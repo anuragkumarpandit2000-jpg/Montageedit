@@ -1,115 +1,28 @@
 import { Router } from "express";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
-import { db, users, passwordResetTokens } from "@workspace/db";
-import { eq, and, gt } from "drizzle-orm";
-import { sendPasswordResetEmail } from "../lib/email";
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "anuragkumar.pandit2000@gmail.com";
-const ADMIN_PASSWORD = "Anurag.ai";
 
 const router = Router();
 
-/* ─── Register ─────────────────────────────────────────── */
-router.post("/auth/register", async (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string };
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
-  }
-  if (password.length < 6) {
-    return res.status(400).json({ error: "Password must be at least 6 characters" });
-  }
-  try {
-    const existing = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
-    if (existing.length > 0) {
-      return res.status(409).json({ error: "An account with this email already exists" });
-    }
-    const passwordHash = await bcrypt.hash(password, 12);
-    const [user] = await db.insert(users).values({ email: email.toLowerCase(), passwordHash }).returning();
-    req.session.userId = user.id;
-    req.session.userEmail = user.email;
-    req.session.isAdmin = user.email === ADMIN_EMAIL;
-    return res.json({ user: { id: user.id, email: user.email, isAdmin: req.session.isAdmin } });
-  } catch (err) {
-    console.error("Register error:", err);
-    return res.status(500).json({ error: "Registration failed" });
-  }
+// Register
+router.post("/auth/register", (req, res) => {
+  res.json({ message: "Register route working" });
 });
 
-/* ─── Login ─────────────────────────────────────────────── */
-router.post("/auth/login", async (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string };
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required" });
-  }
-  try {
-    let [user] = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
-
-    /* ── Admin auto-create if account doesn't exist ── */
-    if (!user && email.toLowerCase() === ADMIN_EMAIL) {
-      if (password === ADMIN_PASSWORD) {
-        const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
-        [user] = await db.insert(users).values({ email: ADMIN_EMAIL, passwordHash }).returning();
-      } else {
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-    }
-
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    let valid = await bcrypt.compare(password, user.passwordHash);
-
-    /* ── Admin special handling ── */
-    if (user.email === ADMIN_EMAIL) {
-      if (password === ADMIN_PASSWORD) {
-        if (!valid) {
-          const newHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
-          await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
-          valid = true;
-        }
-      } else {
-        const newHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
-        await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
-        return res.status(401).json({ error: "Invalid email or password" });
-      }
-    }
-
-    if (!valid) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    req.session.userId = user.id;
-    req.session.userEmail = user.email;
-    req.session.isAdmin = user.email === ADMIN_EMAIL;
-    return res.json({ user: { id: user.id, email: user.email, isAdmin: req.session.isAdmin } });
-  } catch (err) {
-    console.error("Login error:", err);
-    return res.status(500).json({ error: "Login failed" });
-  }
+// Login
+router.post("/auth/login", (req, res) => {
+  res.json({ message: "Login route working" });
 });
 
-/* ─── Logout ─────────────────────────────────────────────── */
+// Logout
 router.post("/auth/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("montage.sid");
-    return res.json({ success: true });
-  });
+  res.json({ message: "Logout route working" });
 });
 
-/* ─── Me ─────────────────────────────────────────────────── */
+// Me
 router.get("/auth/me", (req, res) => {
-  if (!req.session.userId) {
-    return res.json({ user: null });
-  }
-  return res.json({
-    user: {
-      id: req.session.userId,
-      email: req.session.userEmail,
-      isAdmin: req.session.isAdmin ?? false,
-    },
-  });
+  res.json({ user: null });
+});
+
+export default router;  });
 });
 
 /* ─── Forgot Password ─────────────────────────────────────── */
