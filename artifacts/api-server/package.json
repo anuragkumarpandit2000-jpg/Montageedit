@@ -1,39 +1,21 @@
 {
-  "name": "@workspace/api-server",
-  "version": "0.0.0",
-  "private": true,
+  "name": "api-server",
+  "version": "1.0.0",
   "type": "module",
+  "main": "dist/index.cjs",
   "scripts": {
-    "dev": "NODE_ENV=development tsx ./src/index.ts",
-    "build": "tsx ./build.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "build": "npx esbuild src/index.ts --bundle --platform=node --outfile=dist/index.cjs",
+    "start": "node dist/index.cjs"
   },
   "dependencies": {
-    "@google-cloud/storage": "^7.19.0",
-    "@types/bcryptjs": "^3.0.0",
-    "@types/connect-pg-simple": "^7.0.3",
-    "@types/express-session": "^1.18.2",
-    "@workspace/api-zod": "workspace:*",
-    "@workspace/db": "workspace:*",
-    "bcryptjs": "^3.0.3",
-    "connect-pg-simple": "^10.0.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2",
-    "drizzle-orm": "catalog:",
-    "express": "^5",
-    "express-session": "^1.19.0",
-    "google-auth-library": "^10.6.1",
-    "nodemailer": "^8.0.2",
-    "resend": "^6.9.3",
-    "zod": "catalog:"
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "cookie-parser": "^1.4.6",
+    "bcryptjs": "^2.4.3",
+    "nodemailer": "^6.9.8",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "catalog:",
-    "@types/nodemailer": "^7.0.11",
-    "esbuild": "^0.27.3",
-    "tsx": "catalog:"
+    "esbuild": "^0.27.3"
   }
 }
