@@ -60,4 +60,19 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
+app.post("/register", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    await pool.query(
+      "INSERT INTO users (email, password) VALUES ($1, $2)",
+      [email, password]
+    );
+
+    res.json({ message: "User registered" });
+  } catch (err) {
+    res.status(500).json({ error: "Registration failed" });
+  }
+});
+
 export default app;
