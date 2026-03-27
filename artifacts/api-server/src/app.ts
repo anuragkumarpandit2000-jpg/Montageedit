@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
 import router from "./routes";
+import pool from "./db";
 
 declare module "express-session" {
   interface SessionData {
@@ -21,6 +22,7 @@ app.use(
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,6 +41,23 @@ app.use(
   })
 );
 
+/* ✅ ROOT ROUTE (fixes "Cannot GET /") */
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
+
+/* ✅ API ROUTES */
 app.use("/api", router);
+
+/* ✅ DB TEST ROUTE */
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "DB not connected" });
+  }
+});
 
 export default app;
