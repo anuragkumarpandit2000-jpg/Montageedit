@@ -63,14 +63,30 @@ app.get("/test-db", async (req, res) => {
 app.post("/register", async (req, res) => {
   const { email, password } = req.body;
 
+  // ✅ basic validation
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password required" });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters" });
+  }
+
   try {
     await pool.query(
       "INSERT INTO users (email, password) VALUES ($1, $2)",
-      [email, password]
+      [email.toLowerCase(), password]
     );
 
-    res.json({ message: "User registered" });
-  } catch (err) {
+    res.json({ message: "User registered successfully 🚀" });
+  } catch (err: any) {
+    console.error(err);
+
+    // ✅ duplicate email handle
+    if (err.code === "23505") {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+
     res.status(500).json({ error: "Registration failed" });
   }
 });
