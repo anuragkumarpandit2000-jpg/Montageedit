@@ -18,11 +18,10 @@ app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: true,
+    origin: "https://montageparker.netlify.app",
     credentials: true,
   })
 );
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
