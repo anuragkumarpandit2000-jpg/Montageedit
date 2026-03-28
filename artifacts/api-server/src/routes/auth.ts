@@ -1,25 +1,22 @@
 import { Router } from "express";
+import pool from "../db"; // important
 
 const router = Router();
 
-// Register
-router.post("/auth/register", (req, res) => {
-  res.json({ message: "Register route working" });
-});
+router.post("/auth/register", async (req, res) => {
+  const { email, password } = req.body;
 
-// Login
-router.post("/auth/login", (req, res) => {
-  res.json({ message: "Login route working" });
-});
+  try {
+    await pool.query(
+      "INSERT INTO users (email, password) VALUES ($1, $2)",
+      [email, password]
+    );
 
-// Logout
-router.post("/auth/logout", (req, res) => {
-  res.json({ message: "Logout route working" });
-});
-
-// Me
-router.get("/auth/me", (req, res) => {
-  res.json({ user: null });
+    res.json({ message: "User registered" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Registration failed" });
+  }
 });
 
 export default router;
