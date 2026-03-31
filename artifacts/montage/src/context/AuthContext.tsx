@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useLocation } from "wouter";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "";
+
 export interface AuthUser {
   id: number;
   email: string;
@@ -29,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    fetch("/api/auth/me", { credentials: "include" })
+    fetch(`${BASE_URL}/api/auth/me`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setUser(d.user ?? null))
       .catch(() => setUser(null))
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pendingCategory, navigate]);
 
   const signup = useCallback(async (email: string, password: string) => {
-    const res = await fetch("/api/auth/register", {
+    const res = await fetch(`${BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pendingCategory, navigate]);
 
   const logout = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    await fetch(`${BASE_URL}/api/auth/logout`, { method: "POST", credentials: "include" });
     setUser(null);
     navigate("/");
   }, [navigate]);
@@ -95,4 +97,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
-}
+  }
