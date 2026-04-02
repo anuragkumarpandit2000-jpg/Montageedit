@@ -4,16 +4,13 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-// ✅ SAFE ENV HANDLING
 const port = Number(process.env.PORT ?? 3000);
 const basePath = process.env.BASE_PATH ?? "/";
-
 const isDev = process.env.NODE_ENV !== "production";
 
 export default defineConfig(async () => {
   const devPlugins = [];
 
-  // ✅ Only load Replit plugins in dev (safe for production)
   if (isDev && process.env.REPL_ID !== undefined) {
     const cartographer = await import("@replit/vite-plugin-cartographer").then((m) =>
       m.cartographer({
@@ -59,7 +56,7 @@ export default defineConfig(async () => {
       allowedHosts: true,
       proxy: {
         "/api": {
-          target: "http://localhost:8080",
+          target: process.env.VITE_API_URL || "http://localhost:8080",
           changeOrigin: true,
           secure: false,
         },
