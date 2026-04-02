@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/auth/me`, { credentials: "include" })
+    fetch(`${BASE_URL}/api/me`, { credentials: "include" })
       .then((r) => r.json())
       .then((d) => setUser(d.user ?? null))
       .catch(() => setUser(null))
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await fetch(`${BASE_URL}/api/auth/login`, {
+    const res = await fetch(`${BASE_URL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pendingCategory, navigate]);
 
   const signup = useCallback(async (email: string, password: string) => {
-    const res = await fetch(`${BASE_URL}/api/auth/register`, {
+    const res = await fetch(`${BASE_URL}/api/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pendingCategory, navigate]);
 
   const logout = useCallback(async () => {
-    await fetch(`${BASE_URL}/api/auth/logout`, { method: "POST", credentials: "include" });
+    await fetch(`${BASE_URL}/api/logout`, { method: "POST", credentials: "include" });
     setUser(null);
     navigate("/");
   }, [navigate]);
@@ -97,4 +97,4 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
-  }
+                            }
