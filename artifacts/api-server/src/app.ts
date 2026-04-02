@@ -7,12 +7,16 @@ declare module "express-session" {
   interface SessionData {
     userId: number;
     userEmail: string;
+    isAdmin: boolean;
   }
 }
 
 const app: Express = express();
 
 app.set("trust proxy", 1);
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 
 /* ✅ CORS */
 app.use(
@@ -35,7 +39,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: true,
-      sameSite: "none", // 🔥 important for Netlify + Render
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   })
@@ -71,7 +75,6 @@ app.post("/api/register", async (req, res) => {
     if (err.code === "23505") {
       return res.status(400).json({ error: "Email already exists" });
     }
-
     res.status(500).json({ error: "Registration failed" });
   }
 });
@@ -84,6 +87,25 @@ app.post("/api/login", async (req, res) => {
 
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password required" });
+  }
+
+  // ✅ Admin check
+  if (
+    email.toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
+    password === ADMIN_PASSWORD
+  ) {
+    req.session.userId = 0;
+    req.session.userEmail = email.toLowerCase();
+    req.session.isAdmin = true;
+
+    return res.json({
+      message: "Admin login successful 🚀",
+      user: {
+        id: 0,
+        email: email.toLowerCase(),
+        isAdmin: true,
+      },
+    });
   }
 
   try {
@@ -104,8 +126,16 @@ app.post("/api/login", async (req, res) => {
 
     req.session.userId = user.id;
     req.session.userEmail = user.email;
+    req.session.isAdmin = false;
 
-    res.json({ message: "Login successful 🚀" });
+    res.json({
+      message: "Login successful 🚀",
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: false,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: "Login failed" });
   }
@@ -115,7 +145,7 @@ app.post("/api/login", async (req, res) => {
 /* 👤 CURRENT USER */
 /* ============================= */
 app.get("/api/me", (req, res) => {
-  if (!req.session.userId) {
+  if (!req.session.userId && req.session.userId !== 0) {
     return res.json({ user: null });
   }
 
@@ -123,8 +153,27 @@ app.get("/api/me", (req, res) => {
     user: {
       id: req.session.userId,
       email: req.session.userEmail,
+      isAdmin: req.session.isAdmin || false,
     },
   });
+});
+
+/* ============================= */
+/* 👥 ADMIN - ALL USERS */
+/* ============================= */
+app.get("/api/admin/users", async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: "Access denied" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT id, email, created_at FROM users ORDER BY created_at DESC"
+    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
 /* ============================= */
