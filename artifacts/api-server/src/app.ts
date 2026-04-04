@@ -65,12 +65,25 @@ app.post("/api/register", async (req, res) => {
   }
 
   try {
-    await pool.query(
-      "INSERT INTO users (email, password) VALUES ($1, $2)",
+    const insertResult = await pool.query(
+      "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email",
       [email.toLowerCase(), password]
     );
 
-    res.json({ message: "User registered 🚀" });
+    const newUser = insertResult.rows[0];
+
+    req.session.userId = newUser.id;
+    req.session.userEmail = newUser.email;
+    req.session.isAdmin = false;
+
+    res.json({
+      message: "User registered 🚀",
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        isAdmin: false,
+      },
+    });
   } catch (err: any) {
     if (err.code === "23505") {
       return res.status(400).json({ error: "Email already exists" });
@@ -110,6 +123,82 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const result = await pool.query(
+      "SELECT * FROM users WHERE email=$1",
+      [email.toLowerCase()]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ error: "Wrong password" });
+    }
+
+    req.session.userId = user.id;
+    req.session.userEmail = user.email;
+    req.session.isAdmin = false;
+
+    res.json({
+      message: "Login successful 🚀",
+      user: {
+        id: user.id,
+        email: user.email,
+        isAdmin: false,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+/* ============================= */
+/* 👤 CURRENT USER */
+/* ============================= */
+app.get("/api/me", (req, res) => {
+  if (!req.session.userId && req.session.userId !== 0) {
+    return res.json({ user: null });
+  }
+
+  res.json({
+    user: {
+      id: req.session.userId,
+      email: req.session.userEmail,
+      isAdmin: req.session.isAdmin || false,
+    },
+  });
+});
+
+/* ============================= */
+/* 👥 ADMIN - ALL USERS */
+/* ============================= */
+app.get("/api/admin/users", async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: "Access denied" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT id, email, created_at FROM users ORDER BY created_at DESC"
+    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+/* ============================= */
+/* 🚪 LOGOUT */
+/* ============================= */
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ message: "Logged out" });
+  });
+});
+
+export default app    const result = await pool.query(
       "SELECT * FROM users WHERE email=$1",
       [email.toLowerCase()]
     );
