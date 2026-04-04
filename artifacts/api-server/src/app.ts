@@ -198,6 +198,22 @@ app.post("/api/logout", (req, res) => {
   });
 });
 
+export default app;    );
+    res.json({ users: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+/* ============================= */
+/* 🚪 LOGOUT */
+/* ============================= */
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ message: "Logged out" });
+  });
+});
+
 export default app    const result = await pool.query(
       "SELECT * FROM users WHERE email=$1",
       [email.toLowerCase()]
