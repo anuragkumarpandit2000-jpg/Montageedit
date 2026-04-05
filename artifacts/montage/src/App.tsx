@@ -14,6 +14,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { SplineLandingPage } from "@/components/SplineLandingPage";
 import { useScrollSound } from "@/hooks/useScrollSound";
 import { playClick } from "@/lib/sounds";
+import { UploadButton } from "@/components/UploadButton";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +36,6 @@ function App() {
 
   useScrollSound();
 
-  // Global click sound — fires for any button or anchor click on the site
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
@@ -50,25 +50,23 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {/* Step 1: Cinematic loader */}
         <AnimatePresence>
           {!loaded && (
             <CinematicLoader key="loader" onComplete={() => setLoaded(true)} />
           )}
         </AnimatePresence>
 
-        {/* Step 2: 3D Spline landing page (fixed overlay) */}
         {loaded && !splineGone && (
           <SplineLandingPage
             onGone={() => setSplineGone(true)}
           />
         )}
 
-        {/* Step 3: Main app (always rendered, revealed when Spline exits) */}
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
             <Router />
             <AuthModal />
+            <UploadButton />
           </AuthProvider>
         </WouterRouter>
         <Toaster />
