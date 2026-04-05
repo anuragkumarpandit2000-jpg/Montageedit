@@ -1,6 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
 import pool from "./db";
 
 declare module "express-session" {
@@ -17,6 +19,16 @@ app.set("trust proxy", 1);
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+
+/* ✅ CLOUDINARY CONFIG */
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+/* ✅ MULTER - memory storage */
+const upload = multer({ storage: multer.memoryStorage() });
 
 /* ✅ CORS */
 app.use(
@@ -102,7 +114,6 @@ app.post("/api/login", async (req, res) => {
     return res.status(400).json({ error: "Email and password required" });
   }
 
-  // ✅ Admin check
   if (
     email.toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
     password === ADMIN_PASSWORD
@@ -186,6 +197,72 @@ app.get("/api/admin/users", async (req, res) => {
     res.json({ users: result.rows });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+/* ============================= */
+/* 📹 VIDEO UPLOAD */
+/* ============================= */
+app.post("/api/upload", upload.single("video"), async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: "Only admin can upload" });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const { title, category } = req.body;
+
+  if (!title || !category) {
+    return res.status(400).json({ error: "Title and category required" });
+  }
+
+  try {
+    const result = await new Promise<any>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: "video",
+          folder: `montageedit/${category}`,
+          public_id: title.replace(/\s+/g, "_").toLowerCase(),
+          overwrite: true,
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file!.buffer);
+    });
+
+    await pool.query(
+      "INSERT INTO videos (title, category, url, public_id) VALUES ($1, $2, $3, $4)",
+      [title, category, result.secure_url, result.public_id]
+    );
+
+    res.json({
+      message: "Video uploaded successfully 🎬",
+      url: result.secure_url,
+      public_id: result.public_id,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+/* ============================= */
+/* 📹 GET VIDEOS BY CATEGORY */
+/* ============================= */
+app.get("/api/videos/:category", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM videos WHERE category=$1 ORDER BY created_at DESC",
+      [req.params.category]
+    );
+    res.json({ videos: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch videos" });
   }
 });
 
