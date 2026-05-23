@@ -31,9 +31,20 @@ cloudinary.config({
 const upload = multer({ storage: multer.memoryStorage() });
 
 /* ✅ CORS */
+const allowedOrigins = [
+  "https://montageparker.netlify.app",
+  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: "https://montageparker.netlify.app",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );

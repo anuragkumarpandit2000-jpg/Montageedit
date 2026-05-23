@@ -1,9 +1,10 @@
 {
-  "name": "api-server",
+  "name": "@workspace/api-server",
   "version": "1.0.0",
   "type": "module",
   "main": "dist/index.cjs",
   "scripts": {
+    "dev": "tsx src/index.ts",
     "build": "npx esbuild src/index.ts --bundle --platform=node --outfile=dist/index.cjs --external:@node-rs/argon2 --external:@node-rs/bcrypt",
     "start": "node dist/index.cjs"
   },
@@ -19,11 +20,19 @@
     "connect-pg-simple": "^9.0.1",
     "resend": "^3.2.0",
     "postgres": "^3.4.3",
+    "pg": "^8.11.0",
+    "@types/pg": "^8.11.0",
     "cloudinary": "^2.5.1",
     "multer": "^1.4.5-lts.1",
-    "@types/multer": "^1.4.11"
+    "@types/multer": "^1.4.11",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.17.10",
+    "@types/cors": "^2.8.17",
+    "@types/bcryptjs": "^2.4.6",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
-    "esbuild": "^0.27.3"
+    "esbuild": "^0.27.3",
+    "typescript": "^5.0.0"
   }
 }
