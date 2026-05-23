@@ -17,7 +17,7 @@ export function Footer() {
         </p>
         
         <div className="flex gap-6 mb-12">
-          <a href="https://instagram.com/parker_montage" target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all box-glow-primary">
+          <a href="https://www.instagram.com/think.com_1234/" target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all box-glow-primary">
             <Instagram className="w-5 h-5" />
           </a>
           <a href="#" className="w-12 h-12 rounded-full bg-card flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all box-glow-primary">

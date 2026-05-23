@@ -6,7 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import PortfolioPage from "@/pages/PortfolioPage";
+import EditsPage from "@/pages/EditsPage";
+import EditsSubPage from "@/pages/EditsSubPage";
+import WebappPage from "@/pages/WebappPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { CinematicLoader } from "@/components/CinematicLoader";
 import { AuthProvider } from "@/context/AuthContext";
@@ -22,7 +24,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/portfolio/:category" component={PortfolioPage} />
+      <Route path="/portfolio/edits/:sub" component={EditsSubPage} />
+      <Route path="/portfolio/edits" component={EditsPage} />
+      <Route path="/portfolio/webapp" component={WebappPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route component={NotFound} />
     </Switch>
@@ -57,9 +61,7 @@ function App() {
         </AnimatePresence>
 
         {loaded && !splineGone && (
-          <SplineLandingPage
-            onGone={() => setSplineGone(true)}
-          />
+          <SplineLandingPage onGone={() => setSplineGone(true)} />
         )}
 
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>

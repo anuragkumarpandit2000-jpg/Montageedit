@@ -433,6 +433,70 @@ app.post("/api/stats/visit", async (req, res) => {
 });
 
 /* ============================= */
+/* 🖥️ GET WEBAPPS */
+/* ============================= */
+app.get("/api/webapps", async (req, res) => {
+  if (!req.session.userId && req.session.userId !== 0) {
+    return res.status(401).json({ error: "Login required" });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT id, title, website_url as "websiteUrl", thumbnail_url as "thumbnailUrl", created_at as "createdAt"
+       FROM webapps ORDER BY created_at DESC`
+    );
+    res.json({ webapps: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch webapps" });
+  }
+});
+
+/* ============================= */
+/* 🖥️ POST WEBAPP */
+/* ============================= */
+app.post("/api/webapps", async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: "Admin only" });
+  }
+  const { title, websiteUrl, thumbnailUrl } = req.body;
+  if (!title || !websiteUrl) {
+    return res.status(400).json({ error: "title and websiteUrl required" });
+  }
+  try {
+    let resolvedThumb = thumbnailUrl || null;
+    if (resolvedThumb && !resolvedThumb.startsWith("http")) {
+      const publicId = decodeURIComponent(resolvedThumb.replace("/api/videos/object/", ""));
+      resolvedThumb = cloudinary.url(publicId, { resource_type: "image", secure: true });
+    }
+    const result = await pool.query(
+      `INSERT INTO webapps (title, website_url, thumbnail_url)
+       VALUES ($1, $2, $3)
+       RETURNING id, title, website_url as "websiteUrl", thumbnail_url as "thumbnailUrl", created_at as "createdAt"`,
+      [title.trim(), websiteUrl.trim(), resolvedThumb]
+    );
+    res.json({ webapp: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save webapp" });
+  }
+});
+
+/* ============================= */
+/* 🗑️ DELETE WEBAPP */
+/* ============================= */
+app.delete("/api/webapps/:id", async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(403).json({ error: "Admin only" });
+  }
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+  try {
+    await pool.query("DELETE FROM webapps WHERE id=$1", [id]);
+    res.json({ message: "Webapp deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to delete webapp" });
+  }
+});
+
+/* ============================= */
 /* 🏥 HEALTH */
 /* ============================= */
 app.get("/api/health", (req, res) => {
