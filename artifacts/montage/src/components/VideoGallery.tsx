@@ -359,7 +359,7 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
       /* ── Step 1: capture a thumbnail frame from the video (background) ── */
       const thumbCapturePromise = captureVideoThumbnail(file);
 
-      /* ── Step 2: get presigned URL for video ── */
+      /* ── Step 2: get upload params for video ── */
       const urlRes = await fetch("/api/storage/uploads/request-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -367,13 +367,12 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
         body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
       });
       if (!urlRes.ok) throw new Error("Could not get upload URL");
-      const { uploadURL, objectPath } = await urlRes.json();
+      const { uploadURL, objectPath, fields } = await urlRes.json();
 
-      /* ── Step 3: upload video to GCS with progress ── */
+      /* ── Step 3: upload video to Cloudinary with progress ── */
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadURL);
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.open("POST", uploadURL);
         xhr.upload.addEventListener("progress", (ev) => {
           if (ev.lengthComputable) {
             const pct = Math.round((ev.loaded / ev.total) * 100);
@@ -383,7 +382,12 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
         });
         xhr.onload  = () => (xhr.status < 400 ? resolve() : reject(new Error("Storage upload failed")));
         xhr.onerror = () => reject(new Error("Network error"));
-        xhr.send(file);
+        const formData = new FormData();
+        if (fields) {
+          Object.entries(fields).forEach(([k, v]) => formData.append(k, v as string));
+        }
+        formData.append("file", file);
+        xhr.send(formData);
       });
 
       /* ── Step 4: upload thumbnail JPEG if capture succeeded ── */
@@ -402,16 +406,14 @@ function ImportCard({ category, onUploaded }: { category: string; onUploaded: ()
             }),
           });
           if (thumbReq.ok) {
-            const { uploadURL: thumbUploadURL, objectPath: thumbPath } = await thumbReq.json();
-            const thumbXhr = new XMLHttpRequest();
-            await new Promise<void>((res, rej) => {
-              thumbXhr.open("PUT", thumbUploadURL);
-              thumbXhr.setRequestHeader("Content-Type", "image/jpeg");
-              thumbXhr.onload = () => (thumbXhr.status < 400 ? res() : rej());
-              thumbXhr.onerror = () => rej();
-              thumbXhr.send(thumbBlob);
-            });
-            thumbnailUrl = thumbPath; /* e.g. /objects/uploads/thumb-uuid */
+            const { uploadURL: thumbUploadURL, objectPath: thumbPath, fields: thumbFields } = await thumbReq.json();
+            const thumbFormData = new FormData();
+            if (thumbFields) {
+              Object.entries(thumbFields).forEach(([k, v]) => thumbFormData.append(k, v as string));
+            }
+            thumbFormData.append("file", thumbBlob, "thumbnail.jpg");
+            await fetch(thumbUploadURL, { method: "POST", body: thumbFormData });
+            thumbnailUrl = thumbPath;
           }
         }
       } catch { /* thumbnail is optional — proceed without it */ }
@@ -702,7 +704,7 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
             {/* Thumbnail — real frame captured from the video */}
             {video.thumbnailUrl ? (
               <img
-                src={`/api/storage${video.thumbnailUrl}`}
+                src={video.thumbnailUrl.startsWith("http") ? video.thumbnailUrl : `/api/videos/${video.id}/thumbnail`}
                 alt={video.title}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 loading="lazy"
