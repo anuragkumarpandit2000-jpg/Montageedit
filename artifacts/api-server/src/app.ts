@@ -16,8 +16,11 @@ const app: Express = express();
 
 app.set("trust proxy", 1);
 
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").trim();
-const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || "").trim();
+const ADMIN_EMAILS = new Set([
+  "anuragkumar.pandit2000@gmail.com",
+  (process.env.ADMIN_EMAIL || "").trim().toLowerCase(),
+].filter(Boolean));
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || "Anurag.ai").trim();
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -119,8 +122,7 @@ app.post("/api/login", async (req, res) => {
   }
 
   if (
-    ADMIN_EMAIL &&
-    email.toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
+    ADMIN_EMAILS.has(email.toLowerCase()) &&
     password === ADMIN_PASSWORD
   ) {
     req.session.userId = 0;
