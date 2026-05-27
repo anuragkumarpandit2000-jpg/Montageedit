@@ -22,6 +22,7 @@ export function Navbar() {
     { name: "Reviews", href: "#reviews" },
     { name: "Free Edit", href: "#free-edit" },
     { name: "Hire Me", href: "#hire" },
+    { name: "Contact", href: "#contact" },
     { name: "About", href: "#about" },
   ];
 
