@@ -16,7 +16,6 @@ import { AuthModal } from "@/components/AuthModal";
 import { SplineLandingPage } from "@/components/SplineLandingPage";
 import { useScrollSound } from "@/hooks/useScrollSound";
 import { playClick } from "@/lib/sounds";
-import { UploadButton } from "@/components/UploadButton";
 
 const queryClient = new QueryClient();
 
@@ -68,7 +67,6 @@ function App() {
           <AuthProvider>
             <Router />
             <AuthModal />
-            <UploadButton />
           </AuthProvider>
         </WouterRouter>
         <Toaster />
