@@ -13,6 +13,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import { CinematicLoader } from "@/components/CinematicLoader";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { SplineLandingPage } from "@/components/SplineLandingPage";
 import { useScrollSound } from "@/hooks/useScrollSound";
 import { playClick } from "@/lib/sounds";
@@ -69,6 +70,7 @@ function App() {
             <AuthModal />
           </AuthProvider>
         </WouterRouter>
+        <WhatsAppFAB />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
