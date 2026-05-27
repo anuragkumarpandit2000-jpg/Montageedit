@@ -48,29 +48,36 @@ function useSiteStats() {
   const displayRef = useRef<number>(0);
 
   useEffect(() => {
-    fetch("/api/stats/visit", { method: "POST", credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => {
-        displayRef.current = d.visitorCount ?? 20000;
-        setVisitorCount(d.visitorCount ?? 20000);
-      })
-      .catch(() => setVisitorCount(20183));
+    const SESSION_KEY = "montage_visit_counted";
+    const alreadyCounted = sessionStorage.getItem(SESSION_KEY);
 
-    fetch("/api/stats", { credentials: "include" })
-      .then((r) => r.json())
+    const countPromise = alreadyCounted
+      ? fetch("/api/stats", { credentials: "include" }).then((r) => r.json())
+      : fetch("/api/stats/visit", { method: "POST", credentials: "include" })
+          .then((r) => r.json())
+          .then((d) => { sessionStorage.setItem(SESSION_KEY, "1"); return d; });
+
+    countPromise
       .then((d) => {
-        setAvgRating(d.avgRating ?? 0);
-        setReviewCount(d.reviewCount ?? 0);
+        const count = d.visitorCount ?? 0;
+        displayRef.current = count;
+        setVisitorCount(count);
+      })
+      .catch(() => setVisitorCount(null));
+
+    fetch("/api/reviews", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : { reviews: [] })
+      .then((d) => {
+        const reviews: ApiReview[] = d.reviews ?? [];
+        if (reviews.length > 0) {
+          const avg = reviews.reduce((s: number, r: ApiReview) => s + r.rating, 0) / reviews.length;
+          setAvgRating(Math.round(avg * 10) / 10);
+          setReviewCount(reviews.length);
+        }
       })
       .catch(() => {});
 
-    tickRef.current = setInterval(() => {
-      const bump = Math.random() > 0.4 ? 1 : 0;
-      displayRef.current += bump;
-      setVisitorCount((v) => (v !== null ? v + bump : v));
-    }, 6000);
-
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+    return () => {};
   }, []);
 
   return { visitorCount, avgRating, reviewCount };
