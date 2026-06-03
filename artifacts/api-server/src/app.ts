@@ -1,9 +1,13 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { v2 as cloudinary } from "cloudinary";
 import pool from "./db";
 import path from "path";
+import crypto from "crypto";
+
+const PgSession = connectPgSimple(session);
 
 declare module "express-session" {
   interface SessionData {
@@ -29,15 +33,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const allowedOrigins = [
-  "https://montageparker.netlify.app",
-  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-].filter(Boolean);
-
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      if (!origin) return callback(null, true);
+      if (
+        origin.endsWith(".replit.app") ||
+        origin.endsWith(".replit.dev") ||
+        origin === "https://montageparker.netlify.app" ||
+        process.env.NODE_ENV !== "production"
+      ) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -52,6 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
+    store: new PgSession({ pool, tableName: "session", createTableIfMissing: true }),
     name: "montage.sid",
     secret: process.env.SESSION_SECRET || "montage-secret",
     resave: false,
@@ -496,6 +502,81 @@ app.delete("/api/webapps/:id", async (req, res) => {
     res.json({ message: "Webapp deleted" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete webapp" });
+  }
+});
+
+/* ============================= */
+/* 🔑 FORGOT PASSWORD */
+/* ============================= */
+app.post("/api/auth/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email required" });
+
+  try {
+    const result = await pool.query("SELECT id FROM users WHERE email=$1", [email.toLowerCase()]);
+    const user = result.rows[0];
+
+    if (user) {
+      const token = crypto.randomBytes(32).toString("hex");
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await pool.query(
+        "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)",
+        [user.id, token, expires]
+      );
+
+      const siteUrl = process.env.SITE_URL ||
+        (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : "http://localhost:5000");
+      const resetLink = `${siteUrl}/reset-password?token=${token}`;
+      console.log(`[Password Reset] Link for ${email}: ${resetLink}`);
+
+      if (process.env.SMTP_HOST) {
+        try {
+          const nodemailer = await import("nodemailer");
+          const transporter = nodemailer.default.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 587,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          });
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+            to: email,
+            subject: "Reset your Montage password",
+            html: `<p>Click <a href="${resetLink}">here</a> to reset your password. Link expires in 1 hour.</p>`,
+          });
+        } catch (emailErr) {
+          console.error("Email send failed:", emailErr);
+        }
+      }
+    }
+
+    res.json({ message: "If that email exists, a reset link has been sent." });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
+/* ============================= */
+/* 🔑 RESET PASSWORD */
+/* ============================= */
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: "Token and password required" });
+  if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM password_reset_tokens WHERE token=$1 AND used=FALSE AND expires_at > NOW()",
+      [token]
+    );
+    const resetToken = result.rows[0];
+    if (!resetToken) return res.status(400).json({ error: "Invalid or expired reset link" });
+
+    await pool.query("UPDATE users SET password=$1 WHERE id=$2", [password, resetToken.user_id]);
+    await pool.query("UPDATE password_reset_tokens SET used=TRUE WHERE id=$1", [resetToken.id]);
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to reset password" });
   }
 });
 
