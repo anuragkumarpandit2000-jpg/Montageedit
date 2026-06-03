@@ -57,7 +57,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    store: new PgSession({ pool, tableName: "session", createTableIfMissing: true }),
+    store: new PgSession({ pool, tableName: "session" }),
     name: "montage.sid",
     secret: process.env.SESSION_SECRET || "montage-secret",
     resave: false,
