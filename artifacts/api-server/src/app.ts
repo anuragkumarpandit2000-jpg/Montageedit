@@ -3,6 +3,7 @@ import cors from "cors";
 import session from "express-session";
 import { v2 as cloudinary } from "cloudinary";
 import pool from "./db";
+import path from "path";
 
 declare module "express-session" {
   interface SessionData {
@@ -504,5 +505,16 @@ app.delete("/api/webapps/:id", async (req, res) => {
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+/* ============================= */
+/* 🌐 SERVE FRONTEND (production) */
+/* ============================= */
+if (process.env.NODE_ENV === "production") {
+  const frontendDist = path.resolve(process.cwd(), "artifacts/montage/dist/public");
+  app.use(express.static(frontendDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+}
 
 export default app;
