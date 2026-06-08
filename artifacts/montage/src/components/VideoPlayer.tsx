@@ -70,7 +70,7 @@ export function VideoPlayer({ videoId, title, onClose }: VideoPlayerProps) {
                 ref={videoRef}
                 src={`/api/videos/${videoId}/stream`}
                 controls
-                autoPlay
+                playsInline
                 className="w-full h-full"
                 style={{ background: "#000" }}
               />

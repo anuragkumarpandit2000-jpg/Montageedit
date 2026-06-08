@@ -353,6 +353,48 @@ app.post("/api/videos", async (req, res) => {
 });
 
 /* ============================= */
+/* ✏️ EDIT VIDEO (title + thumbnail) */
+/* ============================= */
+app.patch("/api/videos/:id", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).json({ error: "Admin only" });
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+  const { title, thumbnailUrl } = req.body;
+  if (!title && !thumbnailUrl) return res.status(400).json({ error: "Nothing to update" });
+
+  try {
+    let resolvedThumb: string | null = null;
+    if (thumbnailUrl) {
+      if (thumbnailUrl.startsWith("/api/videos/object/")) {
+        const thumbId = decodeURIComponent(thumbnailUrl.replace("/api/videos/object/", ""));
+        resolvedThumb = cloudinary.url(`montageedit/${thumbId}`, { resource_type: "image", secure: true });
+      } else {
+        resolvedThumb = thumbnailUrl;
+      }
+    }
+
+    const sets: string[] = [];
+    const vals: (string | null)[] = [];
+    let idx = 1;
+    if (title) { sets.push(`title=$${idx++}`); vals.push(title); }
+    if (resolvedThumb) { sets.push(`thumbnail_url=$${idx++}`); vals.push(resolvedThumb); }
+    vals.push(String(id));
+
+    const result = await pool.query(
+      `UPDATE videos SET ${sets.join(", ")} WHERE id=$${idx}
+       RETURNING id, title, category, url, public_id, thumbnail_url as "thumbnailUrl", object_path as "objectPath", created_at as "createdAt"`,
+      vals
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: "Video not found" });
+    res.json({ video: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update video" });
+  }
+});
+
+/* ============================= */
 /* 🗑️ DELETE VIDEO */
 /* ============================= */
 app.delete("/api/videos/:id", async (req, res) => {

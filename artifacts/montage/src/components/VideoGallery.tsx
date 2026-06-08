@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   Play, Trash2, Download, MoreVertical,
-  Film, Plus, Upload, X, CheckCircle2,
+  Film, Plus, Upload, X, CheckCircle2, Pencil,
 } from "lucide-react";
 import { VideoPlayer } from "./VideoPlayer";
 import { AdminUpload } from "./AdminUpload";
+import { VideoEditModal } from "./VideoEditModal";
 import { useAuth } from "@/context/AuthContext";
 
 /* ── types ── */
@@ -599,6 +600,7 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
   const [playingId, setPlayingId]   = useState<number | null>(null);
   const [playingTitle, setPlayingTitle] = useState("");
   const [contextMenu, setContextMenu] = useState<{ videoId: number; x: number; y: number } | null>(null);
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [internalRefresh, setInternalRefresh] = useState(0);
 
@@ -625,6 +627,17 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
     if (!confirm("Delete this video from the gallery?")) return;
     await fetch(`/api/videos/${videoId}`, { method: "DELETE", credentials: "include" });
     setVideos((v) => v.filter((vid) => vid.id !== videoId));
+  }
+
+  function handleEdit(videoId: number) {
+    setContextMenu(null);
+    const v = videos.find((vid) => vid.id === videoId) ?? null;
+    setEditingVideo(v);
+  }
+
+  function handleEditSaved(updated: Video) {
+    setVideos((v) => v.map((vid) => vid.id === updated.id ? { ...vid, ...updated } : vid));
+    setEditingVideo(null);
   }
 
   function showContextMenu(e: React.MouseEvent, videoId: number) {
@@ -770,6 +783,14 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              onClick={() => handleEdit(contextMenu.videoId)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-sm text-white/85 hover:text-white hover:bg-indigo-500/15 transition-all"
+            >
+              <Pencil className="w-4 h-4 text-indigo-400" />
+              Edit
+            </button>
+            <div className="h-px bg-white/8 mx-3" />
             <a
               href={`/api/videos/${contextMenu.videoId}/stream?download=1`}
               download
@@ -796,6 +817,13 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
         videoId={playingId}
         title={playingTitle}
         onClose={() => setPlayingId(null)}
+      />
+
+      {/* Edit modal */}
+      <VideoEditModal
+        video={editingVideo}
+        onClose={() => setEditingVideo(null)}
+        onSaved={handleEditSaved}
       />
     </>
   );
