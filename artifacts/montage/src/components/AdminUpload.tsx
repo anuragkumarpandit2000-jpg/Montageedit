@@ -157,14 +157,16 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
         method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
         body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
       });
-      if (!urlRes.ok) throw new Error("Could not get upload URL");
-      const { uploadURL, objectPath } = await urlRes.json();
+      if (!urlRes.ok) {
+        const errData = await urlRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Could not get upload URL");
+      }
+      const { uploadURL, objectPath, fields } = await urlRes.json();
 
-      /* Step 3 — upload video with XHR progress */
+      /* Step 3 — upload video to Cloudinary via FormData POST */
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadURL);
-        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.open("POST", uploadURL);
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) {
             const pct = Math.round((ev.loaded / ev.total) * 100);
@@ -172,9 +174,22 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
             setProgress(pct);
           }
         };
-        xhr.onload  = () => xhr.status < 400 ? resolve() : reject(new Error("Storage upload failed"));
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            let msg = "Storage upload failed";
+            try { msg = JSON.parse(xhr.responseText)?.error?.message || msg; } catch {}
+            reject(new Error(msg));
+          }
+        };
         xhr.onerror = () => reject(new Error("Network error"));
-        xhr.send(file);
+        const form = new FormData();
+        if (fields) {
+          Object.entries(fields as Record<string, string>).forEach(([k, v]) => form.append(k, v));
+        }
+        form.append("file", file);
+        xhr.send(form);
       });
 
       /* Step 4 — upload thumbnail */
@@ -187,13 +202,18 @@ export function AdminUpload({ category, onUploaded }: AdminUploadProps) {
             body: JSON.stringify({ name: `thumb_${Date.now()}.jpg`, size: thumbBlob.size, contentType: "image/jpeg" }),
           });
           if (tRes.ok) {
-            const { uploadURL: tUrl, objectPath: tPath } = await tRes.json();
+            const { uploadURL: tUrl, objectPath: tPath, fields: tFields } = await tRes.json();
             await new Promise<void>((res, rej) => {
               const xhr = new XMLHttpRequest();
-              xhr.open("PUT", tUrl);
-              xhr.setRequestHeader("Content-Type", "image/jpeg");
-              xhr.onload = () => res(); xhr.onerror = () => rej();
-              xhr.send(thumbBlob);
+              xhr.open("POST", tUrl);
+              xhr.onload = () => (xhr.status < 300 ? res() : rej());
+              xhr.onerror = () => rej();
+              const tForm = new FormData();
+              if (tFields) {
+                Object.entries(tFields as Record<string, string>).forEach(([k, v]) => tForm.append(k, v));
+              }
+              tForm.append("file", thumbBlob);
+              xhr.send(tForm);
             });
             thumbnailUrl = tPath;
           }
