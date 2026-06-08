@@ -247,7 +247,6 @@ app.post("/api/storage/uploads/request-url", async (req, res) => {
       {
         timestamp,
         public_id: publicId,
-        resource_type: resourceType,
         folder: "montageedit",
       },
       process.env.CLOUDINARY_API_SECRET || ""
