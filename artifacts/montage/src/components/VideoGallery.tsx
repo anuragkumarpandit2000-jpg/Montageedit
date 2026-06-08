@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 
 /* ── types ── */
 interface Video {
-  id: number; title: string; category: string;
+  id: number; title: string; category: string; url?: string | null;
   objectPath: string; thumbnailUrl?: string | null; createdAt: string;
 }
 interface VideoGalleryProps { category: string; refreshKey?: number; }
@@ -599,6 +599,7 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
   const [loading, setLoading]       = useState(true);
   const [playingId, setPlayingId]   = useState<number | null>(null);
   const [playingTitle, setPlayingTitle] = useState("");
+  const [playingUrl, setPlayingUrl] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ videoId: number; x: number; y: number } | null>(null);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -654,7 +655,11 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
   }
   function onLongPressEnd() { if (longPressTimer) clearTimeout(longPressTimer); setLongPressTimer(null); }
 
-  function openPlayer(video: Video) { setPlayingId(video.id); setPlayingTitle(video.title); }
+  function openPlayer(video: Video) {
+    setPlayingId(video.id);
+    setPlayingTitle(video.title);
+    setPlayingUrl(video.url ?? null);
+  }
 
   /* ── skeleton ── */
   if (loading) {
@@ -816,7 +821,8 @@ export function VideoGallery({ category, refreshKey }: VideoGalleryProps) {
       <VideoPlayer
         videoId={playingId}
         title={playingTitle}
-        onClose={() => setPlayingId(null)}
+        url={playingUrl}
+        onClose={() => { setPlayingId(null); setPlayingUrl(null); }}
       />
 
       {/* Edit modal */}

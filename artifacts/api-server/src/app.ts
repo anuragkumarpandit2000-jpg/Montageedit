@@ -325,7 +325,7 @@ app.post("/api/videos", async (req, res) => {
     const publicId = decodeURIComponent(objectPath.replace("/api/videos/object/", ""));
     // Cloudinary stores files under the folder prefix, so the full path is montageedit/<publicId>
     const fullPublicId = `montageedit/${publicId}`;
-    const url = cloudinary.url(fullPublicId, { resource_type: "video", secure: true });
+    const url = cloudinary.url(fullPublicId, { resource_type: "video", secure: true, format: "mp4" });
 
     // Convert thumbnail objectPath to real Cloudinary image URL
     let resolvedThumbnailUrl: string | null = null;

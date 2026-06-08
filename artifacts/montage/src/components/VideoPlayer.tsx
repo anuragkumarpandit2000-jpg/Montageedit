@@ -5,17 +5,18 @@ import { X } from "lucide-react";
 interface VideoPlayerProps {
   videoId: number | null;
   title: string;
+  url?: string | null;
   onClose: () => void;
 }
 
-export function VideoPlayer({ videoId, title, onClose }: VideoPlayerProps) {
+export function VideoPlayer({ videoId, title, url, onClose }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (videoId !== null && videoRef.current) {
       videoRef.current.load();
     }
-  }, [videoId]);
+  }, [videoId, url]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -24,6 +25,8 @@ export function VideoPlayer({ videoId, title, onClose }: VideoPlayerProps) {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const videoSrc = url || (videoId !== null ? `/api/videos/${videoId}/stream` : null);
 
   return (
     <AnimatePresence>
@@ -36,13 +39,8 @@ export function VideoPlayer({ videoId, title, onClose }: VideoPlayerProps) {
           className="fixed inset-0 z-[100] flex items-center justify-center"
           onClick={onClose}
         >
-          {/* Blurred backdrop */}
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-xl"
-            aria-hidden
-          />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" aria-hidden />
 
-          {/* Player card */}
           <motion.div
             initial={{ scale: 0.85, opacity: 0, y: 40 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -64,16 +62,18 @@ export function VideoPlayer({ videoId, title, onClose }: VideoPlayerProps) {
               </button>
             </div>
 
-            {/* Video */}
+            {/* Video — load direct Cloudinary URL with explicit type to ensure audio plays */}
             <div className="aspect-video bg-black">
               <video
                 ref={videoRef}
-                src={`/api/videos/${videoId}/stream`}
                 controls
                 playsInline
                 className="w-full h-full"
                 style={{ background: "#000" }}
-              />
+              >
+                {videoSrc && <source src={videoSrc} type="video/mp4" />}
+                Your browser does not support the video tag.
+              </video>
             </div>
           </motion.div>
         </motion.div>
