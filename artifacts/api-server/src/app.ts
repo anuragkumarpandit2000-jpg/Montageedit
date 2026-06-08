@@ -323,13 +323,26 @@ app.post("/api/videos", async (req, res) => {
 
   try {
     const publicId = decodeURIComponent(objectPath.replace("/api/videos/object/", ""));
-    const url = cloudinary.url(publicId, { resource_type: "video", secure: true });
+    // Cloudinary stores files under the folder prefix, so the full path is montageedit/<publicId>
+    const fullPublicId = `montageedit/${publicId}`;
+    const url = cloudinary.url(fullPublicId, { resource_type: "video", secure: true });
+
+    // Convert thumbnail objectPath to real Cloudinary image URL
+    let resolvedThumbnailUrl: string | null = null;
+    if (thumbnailUrl) {
+      if (thumbnailUrl.startsWith("/api/videos/object/")) {
+        const thumbId = decodeURIComponent(thumbnailUrl.replace("/api/videos/object/", ""));
+        resolvedThumbnailUrl = cloudinary.url(`montageedit/${thumbId}`, { resource_type: "image", secure: true });
+      } else if (thumbnailUrl.startsWith("http")) {
+        resolvedThumbnailUrl = thumbnailUrl;
+      }
+    }
 
     const result = await pool.query(
       `INSERT INTO videos (title, category, url, public_id, thumbnail_url, object_path)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, title, category, url, public_id, thumbnail_url, object_path, created_at as "createdAt"`,
-      [title, category, url, publicId, thumbnailUrl || null, objectPath]
+      [title, category, url, fullPublicId, resolvedThumbnailUrl, objectPath]
     );
 
     res.json({ video: result.rows[0] });
