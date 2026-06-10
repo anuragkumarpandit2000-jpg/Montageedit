@@ -10,6 +10,7 @@ import EditsPage from "@/pages/EditsPage";
 import EditsSubPage from "@/pages/EditsSubPage";
 import WebappPage from "@/pages/WebappPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import VideoTemplate from "@/components/video/VideoTemplate";
 import { CinematicLoader } from "@/components/CinematicLoader";
 import { AuthProvider } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/portfolio/edits" component={EditsPage} />
       <Route path="/portfolio/webapp" component={WebappPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/video" component={VideoTemplate} />
       <Route component={NotFound} />
     </Switch>
   );
