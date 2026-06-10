@@ -157,7 +157,7 @@ export function VideoEditModal({ video, onClose, onSaved }: VideoEditModalProps)
                     </div>
                   )}
                 </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleThumbChange} />
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleThumbChange} onClick={(e) => { (e.currentTarget as HTMLInputElement).value = ""; }} />
                 {thumbFile && (
                   <p className="text-[11px] text-indigo-300/70 truncate">New: {thumbFile.name}</p>
                 )}

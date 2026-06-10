@@ -281,7 +281,7 @@ app.get("/api/videos/:category", async (req, res) => {
   }
   try {
     const result = await pool.query(
-      "SELECT id, title, category, url, public_id, thumbnail_url, object_path, created_at as \"createdAt\" FROM videos WHERE category=$1 ORDER BY created_at DESC",
+      "SELECT id, title, category, url, public_id, thumbnail_url as \"thumbnailUrl\", object_path as \"objectPath\", created_at as \"createdAt\" FROM videos WHERE category=$1 ORDER BY created_at DESC",
       [req.params.category]
     );
     res.json({ videos: result.rows });
