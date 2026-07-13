@@ -36,7 +36,7 @@ export function AboutSection() {
                 My goal is not just to edit videos but to build a strong digital brand and creative community from zero. I believe that with consistency, creativity and the power of technology, anyone can grow and create something big.
               </p>
               <p>
-                Currently I'm offering portfolio edits and limited free edits to help creators improve their content and to build long-term collaborations.
+                Currently I'm offering cinematic edits at ₹500 per edit (50% off the regular price of ₹1000) to help creators level up their content and build long-term collaborations.
               </p>
             </div>
           </div>

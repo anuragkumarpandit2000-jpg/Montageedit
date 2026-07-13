@@ -20,7 +20,7 @@ export function Navbar() {
     { name: "Home", href: "#home" },
     { name: "Portfolio", href: "#portfolio" },
     { name: "Reviews", href: "#reviews" },
-    { name: "Free Edit", href: "#free-edit" },
+    { name: "50% Off Deal", href: "#free-edit" },
     { name: "Hire Me", href: "#hire" },
     { name: "Contact", href: "#contact" },
     { name: "About", href: "#about" },

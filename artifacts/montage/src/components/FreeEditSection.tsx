@@ -16,15 +16,21 @@ export function FreeEditSection() {
             </div>
             
             <h2 className="text-3xl md:text-5xl font-black mb-4 uppercase tracking-tight text-white">
-              Free Edit Offer
+              50% Off — Special Deal
             </h2>
+
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <span className="text-2xl md:text-3xl font-black text-white/40 line-through">₹1000</span>
+              <span className="text-3xl md:text-5xl font-black text-accent">₹500</span>
+              <span className="text-lg text-white/60 font-medium">per edit</span>
+            </div>
             
             <div className="inline-block px-4 py-1.5 rounded-md bg-destructive/20 border border-destructive/50 text-destructive font-bold text-sm tracking-widest uppercase mb-8 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
               Limited — Only a few spots remaining
             </div>
             
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-              I'm offering free video edits to select creators to build my portfolio. Send your raw clips and let's create something cinematic together.
+              Get a cinematic edit at half the price. Send your raw clips and let's create something that stands out — for just ₹500.
             </p>
             
             <CinematicButton 

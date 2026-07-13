@@ -318,9 +318,9 @@ export function HeroSection() {
             </motion.div>
             <motion.div className="relative" animate={{ y: [0, -5, 0] }} transition={{ ...floatBase, duration: 4.1, delay: 0.6 }}>
               <span className="absolute -top-2.5 -right-2.5 z-20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-accent text-accent-foreground shadow-lg border border-accent/30" style={{ whiteSpace: "nowrap" }}>
-                Limited Time
+                50% Off
               </span>
-              <CinematicButton href="#free-edit" variant="outline">Get a Free Edit</CinematicButton>
+              <CinematicButton href="#free-edit" variant="outline">Get Edit @ ₹500</CinematicButton>
             </motion.div>
           </div>
 
