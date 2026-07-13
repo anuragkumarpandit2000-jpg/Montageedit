@@ -24,25 +24,29 @@ export function AboutSection() {
           {/* ── Photos column ── */}
           <div className="w-full lg:w-1/2 flex flex-col items-center gap-6">
 
-            {/* Portrait — main circular hero photo */}
+            {/* Portrait — wide cinematic banner */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-52 h-52 md:w-64 md:h-64 rounded-full p-[3px]"
+              className="relative w-full max-w-sm rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_40px_rgba(99,102,241,0.25)]"
+              style={{ aspectRatio: "3/4" }}
             >
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary via-accent to-primary animate-[spin_8s_linear_infinite] blur-sm opacity-70" />
-              <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-background bg-black">
+              {/* Spinning gradient border glow */}
+              <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-tr from-primary via-accent to-primary animate-[spin_8s_linear_infinite] blur-sm opacity-40 pointer-events-none z-0" />
+              <div className="relative w-full h-full overflow-hidden rounded-2xl bg-black z-10">
                 <img
-                  src={`${base}portfolio-img3.png`}
+                  src={`${base}portrait-banner.jpg`}
                   alt="Anurag — Montage"
-                  className="w-full h-full object-cover object-top"
-                  style={{ transform: "rotate(90deg) scale(1.3)" }}
+                  className="w-full h-full object-cover"
+                  style={{ transform: "rotate(-90deg) scale(1.5)", transformOrigin: "center center" }}
                 />
+                {/* Bottom fade */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
               </div>
               {/* Name badge */}
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-white text-xs font-black tracking-widest uppercase whitespace-nowrap shadow-[0_0_20px_rgba(99,102,241,0.6)]">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-5 py-1.5 rounded-full bg-gradient-to-r from-primary to-accent text-white text-xs font-black tracking-widest uppercase whitespace-nowrap shadow-[0_0_20px_rgba(99,102,241,0.6)]">
                 Anurag · Editor
               </div>
             </motion.div>
